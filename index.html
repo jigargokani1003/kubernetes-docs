@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>K8s from Scratch – KIND Edition</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"/>
+<style>
+  :root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#38bdf8;--accent2:#818cf8;--border:#334155;--green:#4ade80;--yellow:#fbbf24;--red:#f87171;--card:#1e293b}
+  .light{--bg:#f8fafc;--bg2:#fff;--bg3:#f1f5f9;--text:#1e293b;--text2:#64748b;--accent:#0284c7;--accent2:#6366f1;--border:#e2e8f0;--green:#16a34a;--yellow:#d97706;--red:#dc2626;--card:#fff}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;min-height:100vh}
+  a{color:var(--accent);text-decoration:none}
+  /* Sidebar */
+  #sidebar{width:270px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);position:fixed;top:0;left:0;overflow-y:auto;z-index:100;transition:transform .3s}
+  #sidebar.closed{transform:translateX(-270px)}
+  .sidebar-header{padding:20px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .nav-search{padding:12px 12px 8px}
+  .nav-search input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;outline:none}
+  .nav-search input:focus{border-color:var(--accent)}
+  .nav-group{margin:4px 0}
+  .nav-group-title{padding:8px 16px 4px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-radius:6px;margin:1px 8px;transition:all .15s}
+  .nav-item:hover,.nav-item.active{background:var(--bg3);color:var(--accent)}
+  .nav-item .badge{margin-left:auto;background:var(--bg3);border-radius:10px;padding:1px 7px;font-size:11px;color:var(--text2)}
+  .nav-item.active .badge{background:var(--accent);color:#fff}
+  /* Main */
+  #main{margin-left:270px;flex:1;min-height:100vh;transition:margin .3s}
+  #main.full{margin-left:0}
+  /* Topbar */
+  .topbar{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:14px}
+  .topbar-title{font-size:16px;font-weight:600;flex:1}
+  .btn{border:none;cursor:pointer;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;transition:all .15s}
+  .btn-ghost{background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
+  .btn-ghost:hover{background:var(--bg3);color:var(--text)}
+  .btn-accent{background:var(--accent);color:#fff}
+  .btn-sm{padding:4px 10px;font-size:12px;border-radius:6px}
+  /* Content */
+  .content{padding:32px 36px;max-width:960px}
+  .section{display:none}
+  .section.active{display:block}
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:22px}
+  .card-title{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .tag-blue{background:#0ea5e940;color:#38bdf8}
+  .tag-green{background:#4ade8040;color:#4ade80}
+  .tag-purple{background:#818cf840;color:#818cf8}
+  .tag-yellow{background:#fbbf2440;color:#fbbf24}
+  .tag-red{background:#f8717140;color:#f87171}
+  /* Headings */
+  h1{font-size:30px;font-weight:800;margin-bottom:8px}
+  h2{font-size:20px;font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  h3{font-size:15px;font-weight:700;margin-bottom:10px}
+  p{font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:10px}
+  /* Code blocks */
+  .code-block{position:relative;background:#0d1117;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
+  .code-header{background:#161b22;padding:8px 14px;font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+  .code-block pre{margin:0;padding:14px 16px;font-size:13px;overflow-x:auto;line-height:1.6}
+  .code-block code{background:none!important;padding:0!important}
+  .copy-btn{background:#334155;border:none;color:#94a3b8;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .15s}
+  .copy-btn:hover{background:var(--accent);color:#fff}
+  .copy-btn.copied{background:var(--green);color:#fff}
+  /* Tables */
+  .cmd-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
+  .cmd-table th{background:var(--bg3);padding:10px 14px;text-align:left;font-weight:700;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  .cmd-table td{padding:10px 14px;border-top:1px solid var(--border);color:var(--text2);vertical-align:top}
+  .cmd-table td:first-child{color:var(--accent);font-family:monospace;font-size:12.5px;white-space:nowrap}
+  .cmd-table td code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--green)}
+  .cmd-table tr:hover td{background:var(--bg3)}
+  /* Mermaid */
+  .mermaid-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;overflow-x:auto;margin-bottom:14px;text-align:center}
+  /* Steps */
+  .steps{counter-reset:step}
+  .step{display:flex;gap:16px;margin-bottom:18px;align-items:flex-start}
+  .step-num{min-width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;margin-top:2px}
+  .step-content h4{font-size:14px;font-weight:700;margin-bottom:6px}
+  /* Alert boxes */
+  .alert{border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;line-height:1.6}
+  .alert-blue{background:#0ea5e915;border:1px solid #0ea5e950;color:#38bdf8}
+  .alert-green{background:#4ade8015;border:1px solid #4ade8050;color:#4ade80}
+  .alert-yellow{background:#fbbf2415;border:1px solid #fbbf2450;color:#fbbf24}
+  .alert-red{background:#f8717115;border:1px solid #f8717150;color:#f87171}
+  .alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+  /* Memory trick */
+  .memory-trick{background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca60;border-radius:10px;padding:16px;margin-bottom:14px}
+  .memory-trick .mt-title{font-size:12px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+  .memory-trick p{color:#c7d2fe;margin:0}
+  /* Topic header */
+  .topic-header{margin-bottom:28px}
+  .topic-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  /* Home hero */
+  .hero{padding:40px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px}
+  .hero-badge{display:inline-block;background:var(--accent)20;border:1px solid var(--accent)60;color:var(--accent);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;margin-bottom:14px}
+  .hero p{font-size:15px;color:var(--text2);max-width:600px;line-height:1.75}
+  /* Grid */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr}}
+  /* Mobile toggle */
+  #sidebar-toggle{display:none}
+  @media(max-width:900px){
+    #sidebar{transform:translateX(-270px)}
+    #sidebar.open{transform:translateX(0)}
+    #main{margin-left:0}
+    #sidebar-toggle{display:block}
+    .content{padding:20px 16px}
+    h1{font-size:22px}
+    .grid2{grid-template-columns:1fr}
+  }
+  /* Progress */
+  .progress-bar{height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));position:fixed;top:0;left:0;z-index:200;transition:width .3s;border-radius:0 2px 2px 0}
+</style>
+</head>
+<body>
+<div id="progress" class="progress-bar" style="width:0%"></div>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <span class="logo">⎈ K8s Docs</span>
+  </div>
+  <div class="nav-search">
+    <input id="search" type="text" placeholder="Search topics…" oninput="searchTopics(this.value)"/>
+  </div>
+  <div id="nav-list">
+    <div class="nav-group">
+      <div class="nav-group-title">Getting Started</div>
+      <div class="nav-item active" onclick="showSection('home')">🏠 Home &amp; Overview</div>
+      <div class="nav-item" onclick="showSection('kind-setup')">⚙️ KIND Cluster Setup <span class="badge">1</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Core Concepts</div>
+      <div class="nav-item" onclick="showSection('kubectl')">🔧 kubectl Basics <span class="badge">2</span></div>
+      <div class="nav-item" onclick="showSection('pods')">📦 Pods <span class="badge">3</span></div>
+      <div class="nav-item" onclick="showSection('replicasets')">🔁 ReplicaSets <span class="badge">4</span></div>
+      <div class="nav-item" onclick="showSection('deployments')">🚀 Deployments <span class="badge">5</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Networking</div>
+      <div class="nav-item" onclick="showSection('services')">🌐 Services <span class="badge">6</span></div>
+      <div class="nav-item" onclick="showSection('ingress')">🔀 Ingress <span class="badge">11</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Configuration</div>
+      <div class="nav-item" onclick="showSection('namespaces')">🗂️ Namespaces <span class="badge">7</span></div>
+      <div class="nav-item" onclick="showSection('configmaps')">🗃️ ConfigMaps <span class="badge">8</span></div>
+      <div class="nav-item" onclick="showSection('secrets')">🔐 Secrets <span class="badge">9</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Storage &amp; Scale</div>
+      <div class="nav-item" onclick="showSection('volumes')">💾 Volumes &amp; PV <span class="badge">10</span></div>
+      <div class="nav-item" onclick="showSection('autoscaling')">📈 Autoscaling <span class="badge">12</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Advanced</div>
+      <div class="nav-item" onclick="showSection('helm')">⛵ Helm Basics <span class="badge">13</span></div>
+      <div class="nav-item" onclick="showSection('debugging')">🐛 Debugging K8s <span class="badge">14</span></div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main id="main">
+  <div class="topbar">
+    <button class="btn btn-ghost btn-sm" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    <span class="topbar-title" id="page-title">Kubernetes from Scratch</span>
+    <button class="btn btn-ghost btn-sm" onclick="toggleTheme()">🌙 Theme</button>
+  </div>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <div id="sec-home" class="section active">
+      <div class="hero">
+        <div class="hero-badge">⎈ Kubernetes Learning Path</div>
+        <h1>Kubernetes from Scratch</h1>
+        <h2 style="border:none;padding:0;font-size:16px;font-weight:400;color:var(--text2);margin-bottom:16px">Using KIND Multi-Node Cluster</h2>
+        <p>A hands-on guide to mastering Kubernetes one command at a time. Every topic has a concept, real-world example, command table, architecture diagram, and a memory trick so you never forget.</p>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">🎯 What is Kubernetes?</div>
+          <p>Kubernetes (K8s) is an open-source container orchestration system. It automates <strong>deployment, scaling, and management</strong> of containerized apps across a cluster of machines.</p>
+          <p>Think of it as an <em>operating system for your data center</em> — it schedules containers, heals failures, and exposes services automatically.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">🐳 What is KIND?</div>
+          <p><strong>K</strong>ubernetes <strong>IN</strong> <strong>D</strong>ocker runs K8s nodes as Docker containers on your laptop. Perfect for learning without cloud costs.</p>
+          <ul style="color:var(--text2);font-size:13px;line-height:2;padding-left:18px">
+            <li>Zero cost — runs locally</li>
+            <li>Multi-node clusters in seconds</li>
+            <li>Mirrors production behavior</li>
+            <li>Fast teardown and recreate</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🗺️ KIND Multi-Node Architecture</div>
+        <div class="mermaid-wrap">
+          <div class="mermaid">
+graph TB
+  subgraph HOST["🖥️ Your Laptop / Dev Machine"]
+    subgraph KIND["KIND Cluster (Docker Network)"]
+      CP["⎈ Control Plane Node\n(Docker Container)\nAPI Server · etcd\nScheduler · Controller Mgr"]
+      W1["⚙️ Worker Node 1\n(Docker Container)\nkubelet · kube-proxy\nContainer Runtime"]
+      W2["⚙️ Worker Node 2\n(Docker Container)\nkubelet · kube-proxy\nContainer Runtime"]
+      CP -->|schedules pods| W1
+      CP -->|schedules pods| W2
+    end
+    KC["kubectl\n(CLI)"] -->|API calls| CP
+    DOC["Docker Engine"] -.->|manages| KIND
+  end
+  style HOST fill:#1e293b,stroke:#334155,color:#e2e8f0
+  style KIND fill:#0f172a,stroke:#38bdf8,color:#e2e8f0
+  style CP fill:#1d4ed8,stroke:#60a5fa,color:#fff
+  style W1 fill:#065f46,stroke:#34d399,color:#fff
+  style W2 fill:#065f46,stroke:#34d399,color:#fff
+  style KC fill:#7c3aed,stroke:#a78bfa,color:#fff
+  style DOC fill:#1e3a5f,stroke:#38bdf8,color:#fff
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📚 Learning Path</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-content"><h4>KIND Setup</h4><p>Install Docker, kubectl, KIND — create your first multi-node cluster.</p></div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-content"><h4>kubectl Basics</h4><p>Learn the essential CLI commands to talk to your cluster.</p></div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-content"><h4>Pods → ReplicaSets → Deployments</h4><p>Build from the smallest unit up to production-grade workloads.</p></div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-content"><h4>Services, Ingress, Namespaces</h4><p>Expose and organize your workloads.</p></div></div>
+          <div class="step"><div class="step-num">5</div><div class="step-content"><h4>Config, Secrets, Volumes</h4><p>Manage app configuration and persistent data.</p></div></div>
+          <div class="step"><div class="step-num">6</div><div class="step-content"><h4>Autoscaling, Helm, Debugging</h4><p>Advanced operational skills for real workloads.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KIND SETUP -->
+    <div id="sec-kind-setup" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 1</span><span class="tag tag-green">Setup</span></div>
+        <h1>KIND Cluster Setup</h1>
+        <p>KIND (Kubernetes IN Docker) lets you run K8s nodes as Docker containers. Install 3 tools, write one config file, and you have a production-like multi-node cluster in under 5 minutes.</p>
+      </div>
+
+      <div class="card">
+        <h3>Why KIND?</h3>
+        <p>Cloud clusters cost money. Minikube is single-node. KIND gives you a <strong>real multi-node cluster</strong> on your laptop — same behavior as production, free, and disposable. Perfect for practicing scheduling, node failures, and networking.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📦 Step 1 — Install Docker</div>
+        <div class="code-block">
+          <div class="code-header"><span>bash – Linux (Ubuntu)</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash"># Install Docker Engine
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER   # no sudo needed after re-login
+docker --version                # Docker version 24.x.x</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔧 Step 2 — Install kubectl</div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+kubectl version --client   # Client Version: v1.29.x</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⎈ Step 3 — Install KIND</div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+chmod +x kind && sudo mv kind /usr/local/bin/
+kind --version   # kind v0.22.0</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🏗️ Step 4 — Create Multi-Node Cluster</div>
+        <div class="code-block">
+          <div class="code-header"><span>kind-config.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml"># kind-config.yaml — 1 control-plane + 2 workers
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kind create cluster --name my-cluster --config kind-config.yaml
+kubectl cluster-info --context kind-my-cluster
+kubectl get nodes   # Should show 3 nodes (Ready)</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 KIND Commands Reference</div>
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kind create cluster</td><td>Create a new cluster</td><td><code>kind create cluster --name dev</code></td></tr>
+          <tr><td>kind get clusters</td><td>List all KIND clusters</td><td><code>kind get clusters</code></td></tr>
+          <tr><td>kind delete cluster</td><td>Destroy a cluster</td><td><code>kind delete cluster --name dev</code></td></tr>
+          <tr><td>kind load docker-image</td><td>Push local image to cluster</td><td><code>kind load docker-image myapp:v1 --name dev</code></td></tr>
+          <tr><td>kind get nodes</td><td>List cluster nodes</td><td><code>kind get nodes --name dev</code></td></tr>
+        </table>
+      </div>
+
+      <div class="memory-trick">
+        <div class="mt-title">🧠 Memory Trick</div>
+        <p><strong>D-K-K</strong> = <strong>D</strong>ocker first, then <strong>K</strong>ubectl, then <strong>K</strong>IND. Like building a house: foundation → tools → blueprint. You can't schedule what you can't run!</p>
+      </div>
+      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Forgetting <code>sudo usermod -aG docker $USER</code> → all KIND commands fail with permission denied. Always log out and back in after this step.</div></div>
+    </div>
+
+    <!-- KUBECTL BASICS -->
+    <div id="sec-kubectl" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 2</span><span class="tag tag-purple">CLI</span></div>
+        <h1>kubectl Basics</h1>
+        <p>kubectl is the CLI that talks to the Kubernetes API server. Every command you type → API call → cluster state change. Mastering kubectl = mastering K8s.</p>
+      </div>
+
+      <div class="card">
+        <h3>Real-World Example</h3>
+        <p>You deployed a new app and users report it's down. You use <code>kubectl get pods</code> to check status, <code>kubectl describe pod</code> to see events, and <code>kubectl logs</code> to read the error — all in under 60 seconds.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 Essential kubectl Commands</div>
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl cluster-info</td><td>Show API server &amp; services URL</td><td><code>kubectl cluster-info</code></td></tr>
+          <tr><td>kubectl get nodes</td><td>List all nodes + status</td><td><code>kubectl get nodes -o wide</code></td></tr>
+          <tr><td>kubectl get pods</td><td>List pods in namespace</td><td><code>kubectl get pods -A</code></td></tr>
+          <tr><td>kubectl describe</td><td>Detailed info + events</td><td><code>kubectl describe pod nginx</code></td></tr>
+          <tr><td>kubectl apply -f</td><td>Create/update from YAML</td><td><code>kubectl apply -f pod.yaml</code></td></tr>
+          <tr><td>kubectl delete</td><td>Remove a resource</td><td><code>kubectl delete pod nginx</code></td></tr>
+          <tr><td>kubectl logs</td><td>View container stdout</td><td><code>kubectl logs -f nginx</code></td></tr>
+          <tr><td>kubectl exec</td><td>Run command in container</td><td><code>kubectl exec -it nginx -- bash</code></td></tr>
+          <tr><td>kubectl get all</td><td>Everything in namespace</td><td><code>kubectl get all -n default</code></td></tr>
+          <tr><td>kubectl config</td><td>Manage kubeconfig contexts</td><td><code>kubectl config get-contexts</code></td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>bash – Quick cluster health check</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl cluster-info
+# Kubernetes control plane is running at https://127.0.0.1:PORT
+
+kubectl get nodes -o wide
+# NAME                      STATUS   ROLES           AGE   VERSION
+# my-cluster-control-plane  Ready    control-plane   5m    v1.29.0
+# my-cluster-worker         Ready    worker          4m    v1.29.0
+# my-cluster-worker2        Ready    worker          4m    v1.29.0
+
+kubectl get pods -A   # all namespaces
+kubectl get events --sort-by='.lastTimestamp'</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">kubectl Request Flow</div>
+        <div class="mermaid-wrap">
+          <div class="mermaid">
+sequenceDiagram
+  participant U as 👤 You (kubectl)
+  participant A as API Server
+  participant E as etcd
+  participant S as Scheduler
+  participant K as kubelet (Node)
+  U->>A: kubectl apply -f pod.yaml
+  A->>E: Store desired state
+  A->>S: New pod needs scheduling
+  S->>A: Assign pod to Node 2
+  A->>K: Create pod spec
+  K->>K: Pull image & start container
+  K->>A: Report pod Running
+  A->>U: pod/nginx created ✓
+          </div>
+        </div>
+      </div>
+
+      <div class="memory-trick">
+        <div class="mt-title">🧠 Memory Trick</div>
+        <p><strong>G-D-L-E</strong> = <strong>G</strong>et (what's there?) → <strong>D</strong>escribe (what's wrong?) → <strong>L</strong>ogs (what did it print?) → <strong>E</strong>xec (go inside and check). This is your 4-step debug loop!</p>
+      </div>
+      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Running <code>kubectl get pods</code> without <code>-n namespace</code> or <code>-A</code> and wondering why nothing shows. Default namespace is often empty!</div></div>
+    </div>
+
+    <!-- PODS -->
+    <div id="sec-pods" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 3</span><span class="tag tag-green">Workload</span></div>
+        <h1>Pods</h1>
+        <p>A Pod is the smallest deployable unit in Kubernetes. It wraps one (or more) containers that share network and storage. Every container in K8s runs inside a Pod.</p>
+      </div>
+      <div class="card"><h3>Why Pods?</h3><p>Docker runs containers. K8s runs Pods. Pods add a shared network namespace (one IP per pod), shared volumes, and lifecycle management. A sidecar container (logging, proxy) can live next to your app in the same Pod.</p></div>
+      <div class="card"><h3>Real-World Example</h3><p>An Nginx web server pod + a Filebeat sidecar container sharing <code>/var/log/nginx</code> via a shared volume. One pod IP, two processes working together.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>nginx-pod.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.25
+    ports:
+    - containerPort: 80
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "128Mi"
+        cpu: "500m"</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl apply -f nginx-pod.yaml
+kubectl get pods -o wide
+kubectl describe pod nginx        # events, node, IP
+kubectl exec -it nginx -- bash    # shell into pod
+kubectl port-forward pod/nginx 8080:80  # local testing
+kubectl delete pod nginx</code></pre>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Pod Commands</div>
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl run</td><td>Quickly create a pod</td><td><code>kubectl run nginx --image=nginx</code></td></tr>
+          <tr><td>kubectl get pods</td><td>List pods + status</td><td><code>kubectl get pods -o wide</code></td></tr>
+          <tr><td>kubectl describe pod</td><td>Events &amp; details</td><td><code>kubectl describe pod nginx</code></td></tr>
+          <tr><td>kubectl logs</td><td>Container stdout</td><td><code>kubectl logs nginx -f</code></td></tr>
+          <tr><td>kubectl exec</td><td>Shell into container</td><td><code>kubectl exec -it nginx -- bash</code></td></tr>
+          <tr><td>kubectl port-forward</td><td>Local port to pod</td><td><code>kubectl port-forward pod/nginx 8080:80</code></td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Pod Lifecycle</div>
+        <div class="mermaid-wrap">
+          <div class="mermaid">
+stateDiagram-v2
+  [*] --> Pending : kubectl apply
+  Pending --> Running : Image pulled, container started
+  Running --> Succeeded : Container exits 0
+  Running --> Failed : Container exits non-0
+  Running --> Unknown : Node unreachable
+  Failed --> Pending : Restart policy (Always/OnFailure)
+  Succeeded --> [*]
+          </div>
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Pod = Hotel Room.</strong> One IP address (room number), multiple guests (containers) sharing the bathroom (volumes &amp; network). You can't book half a room — you get the whole Pod.</p></div>
+      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Pods are ephemeral! Never store persistent data inside a pod without a PersistentVolume. When a pod dies, its filesystem dies with it.</div></div>
+    </div>
+
+    <!-- REPLICASETS -->
+    <div id="sec-replicasets" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 4</span><span class="tag tag-green">Workload</span></div>
+        <h1>ReplicaSets</h1>
+        <p>A ReplicaSet ensures a specified number of identical pod replicas are running at all times. If a pod dies, it creates a new one. If too many exist, it deletes extras.</p>
+      </div>
+      <div class="card"><h3>Why ReplicaSets?</h3><p>Single pods have no self-healing. A ReplicaSet is a <strong>supervisor</strong> — it watches pods via label selectors and reconciles actual vs desired count, making your app resilient to node and pod failures.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>replicaset.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl apply -f replicaset.yaml
+kubectl get rs                      # Check ReplicaSet
+kubectl get pods --show-labels      # See label selectors
+kubectl scale rs nginx-rs --replicas=5  # Scale up
+kubectl delete pod nginx-rs-xxxxx  # RS recreates it!
+kubectl delete rs nginx-rs         # Deletes RS + all pods</code></pre>
+        </div>
+      </div>
+      <div class="card">
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl get rs</td><td>List ReplicaSets</td><td><code>kubectl get rs -o wide</code></td></tr>
+          <tr><td>kubectl describe rs</td><td>Events &amp; pod status</td><td><code>kubectl describe rs nginx-rs</code></td></tr>
+          <tr><td>kubectl scale rs</td><td>Change replica count</td><td><code>kubectl scale rs nginx-rs --replicas=5</code></td></tr>
+          <tr><td>kubectl delete rs</td><td>Remove RS + its pods</td><td><code>kubectl delete rs nginx-rs</code></td></tr>
+        </table>
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+graph LR
+  RS["ReplicaSet\n(desired: 3)"] -->|manages| P1["Pod 1 ✅"]
+  RS -->|manages| P2["Pod 2 ✅"]
+  RS -->|manages| P3["Pod 3 ✅"]
+  P2 -->|dies ❌| D["Pod 2 Deleted"]
+  D -->|RS detects| RS
+  RS -->|creates| P4["Pod 2' ✅ (new)"]
+  style RS fill:#1d4ed8,stroke:#60a5fa,color:#fff
+  style D fill:#7f1d1d,stroke:#f87171,color:#fff
+  style P4 fill:#065f46,stroke:#34d399,color:#fff
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>ReplicaSet = Security Guard</strong> for pods. It checks the headcount every few seconds. Too few? Spawn more. Too many? Send some home. Always hits the target number.</p></div>
+      <div class="alert alert-yellow"><span class="alert-icon">💡</span><div><strong>Best Practice:</strong> Don't use ReplicaSets directly — use <strong>Deployments</strong> which wrap ReplicaSets and add rolling update + rollback capabilities.</div></div>
+    </div>
+
+    <!-- DEPLOYMENTS -->
+    <div id="sec-deployments" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 5</span><span class="tag tag-green">Workload</span></div>
+        <h1>Deployments</h1>
+        <p>A Deployment is the standard way to run stateless apps in K8s. It manages ReplicaSets to provide rolling updates, rollback, and self-healing — all declaratively.</p>
+      </div>
+      <div class="card"><h3>Real-World Example</h3><p>You have <code>myapp:v1</code> running with 5 replicas. Update to <code>v2</code> — K8s creates a new ReplicaSet, rolls pods over one by one, zero downtime. Something breaks? One command rolls back to v1.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>deployment.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash – Deploy, update, rollback</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl apply -f deployment.yaml
+kubectl get deploy
+kubectl rollout status deployment/nginx-deploy
+
+# Rolling update
+kubectl set image deployment/nginx-deploy nginx=nginx:1.26
+kubectl rollout history deployment/nginx-deploy
+
+# Rollback
+kubectl rollout undo deployment/nginx-deploy
+kubectl rollout undo deployment/nginx-deploy --to-revision=1
+
+# Scale
+kubectl scale deployment nginx-deploy --replicas=5</code></pre>
+        </div>
+      </div>
+      <div class="card">
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl get deploy</td><td>List Deployments</td><td><code>kubectl get deploy -o wide</code></td></tr>
+          <tr><td>kubectl rollout status</td><td>Watch rollout progress</td><td><code>kubectl rollout status deploy/nginx</code></td></tr>
+          <tr><td>kubectl rollout history</td><td>View revision history</td><td><code>kubectl rollout history deploy/nginx</code></td></tr>
+          <tr><td>kubectl rollout undo</td><td>Roll back to previous</td><td><code>kubectl rollout undo deploy/nginx</code></td></tr>
+          <tr><td>kubectl set image</td><td>Trigger rolling update</td><td><code>kubectl set image deploy/nginx nginx=nginx:1.26</code></td></tr>
+          <tr><td>kubectl scale</td><td>Change replica count</td><td><code>kubectl scale deploy/nginx --replicas=5</code></td></tr>
+        </table>
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+graph TB
+  D["Deployment\n(nginx:1.25 → nginx:1.26)"]
+  D --> RS1["ReplicaSet v1\nnginx:1.25 (scale down)"]
+  D --> RS2["ReplicaSet v2\nnginx:1.26 (scale up)"]
+  RS1 --> P1["Pod (old) ❌"]
+  RS1 --> P2["Pod (old) ❌"]
+  RS2 --> P3["Pod (new) ✅"]
+  RS2 --> P4["Pod (new) ✅"]
+  RS2 --> P5["Pod (new) ✅"]
+  style D fill:#7c3aed,stroke:#a78bfa,color:#fff
+  style RS1 fill:#7f1d1d,stroke:#f87171,color:#fff
+  style RS2 fill:#065f46,stroke:#34d399,color:#fff
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Deployment = Git for your Pods.</strong> It keeps history (revisions), lets you <code>push</code> updates (set image), and <code>revert</code> when things break (rollout undo). Always commit your YAML! 😄</p></div>
+      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Not setting <code>--record</code> or adding <code>change-cause</code> annotation means rollout history is empty and you can't trace what changed.</div></div>
+    </div>
+
+    <!-- SERVICES -->
+    <div id="sec-services" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 6</span><span class="tag tag-purple">Networking</span></div>
+        <h1>Services</h1>
+        <p>Pods are ephemeral and get new IPs on restart. A Service provides a <strong>stable virtual IP + DNS name</strong> that load-balances traffic to matching pods via label selectors.</p>
+      </div>
+      <div class="card">
+        <h3>Three Service Types</h3>
+        <div class="grid2">
+          <div><span class="tag tag-green" style="margin-bottom:8px;display:inline-block">ClusterIP</span><p>Internal only. Pod-to-pod communication inside the cluster. Default type.</p></div>
+          <div><span class="tag tag-yellow" style="margin-bottom:8px;display:inline-block">NodePort</span><p>Exposes on each node's IP at a static port (30000–32767). Accessible externally.</p></div>
+          <div><span class="tag tag-blue" style="margin-bottom:8px;display:inline-block">LoadBalancer</span><p>Cloud LB provisioned automatically (AWS ELB, GCP LB). External IP assigned.</p></div>
+          <div><span class="tag tag-purple" style="margin-bottom:8px;display:inline-block">ExternalName</span><p>Maps service to external DNS name. No proxy, just CNAME.</p></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>service.yaml – All three types</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">---
+# ClusterIP (default) — internal only
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-clusterip
+spec:
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# NodePort — external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
+---
+# LoadBalancer — cloud / metallb
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl apply -f service.yaml
+kubectl get svc
+kubectl describe svc nginx-clusterip
+# Test NodePort in KIND
+kubectl get nodes -o wide  # get node IP
+curl http://NODE_IP:30080</code></pre>
+        </div>
+      </div>
+      <div class="card">
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl get svc</td><td>List services</td><td><code>kubectl get svc -o wide</code></td></tr>
+          <tr><td>kubectl describe svc</td><td>Endpoints &amp; selectors</td><td><code>kubectl describe svc nginx</code></td></tr>
+          <tr><td>kubectl expose</td><td>Create service from resource</td><td><code>kubectl expose deploy nginx --port=80 --type=NodePort</code></td></tr>
+          <tr><td>kubectl delete svc</td><td>Remove service</td><td><code>kubectl delete svc nginx</code></td></tr>
+        </table>
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+graph LR
+  EXT["🌐 External\nTraffic"] -->|NodePort 30080| NP["NodePort Service\n:30080"]
+  NP -->|":80"| CIP["ClusterIP\n10.96.x.x:80"]
+  CIP -->|LB| P1["Pod 1\n:80"]
+  CIP -->|LB| P2["Pod 2\n:80"]
+  CIP -->|LB| P3["Pod 3\n:80"]
+  INT["📦 Internal\nPod"] -->|DNS: nginx:80| CIP
+  style EXT fill:#1e3a5f,stroke:#38bdf8,color:#fff
+  style NP fill:#78350f,stroke:#fbbf24,color:#fff
+  style CIP fill:#1d4ed8,stroke:#60a5fa,color:#fff
+  style INT fill:#374151,stroke:#9ca3af,color:#fff
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>C-N-L</strong> = <strong>C</strong>lub (ClusterIP — internal members only) → <strong>N</strong>eighborhood (NodePort — reachable from your block) → <strong>L</strong>obby (LoadBalancer — public entrance, anyone can walk in).</p></div>
+    </div>
+
+    <!-- NAMESPACES -->
+    <div id="sec-namespaces" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 7</span><span class="tag tag-green">Organization</span></div>
+        <h1>Namespaces</h1>
+        <p>Namespaces divide a single K8s cluster into virtual clusters. Resources in different namespaces are isolated but can communicate using full DNS names.</p>
+      </div>
+      <div class="card"><h3>Why Namespaces?</h3><p>One cluster, multiple teams. Dev, staging, prod — or team-frontend, team-backend. Each namespace has its own resource quotas, RBAC rules, and service discovery scope. Saves money vs multiple clusters.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl get namespaces              # List all NS
+kubectl create namespace dev        # Create dev NS
+kubectl create namespace production
+
+# Deploy into a namespace
+kubectl apply -f pod.yaml -n dev
+kubectl get pods -n dev
+kubectl get pods -A                 # All namespaces
+
+# Cross-namespace DNS
+# service.namespace.svc.cluster.local
+# e.g.: nginx.dev.svc.cluster.local
+
+# Set default namespace for session
+kubectl config set-context --current --namespace=dev</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>namespace.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+  labels:
+    env: development</code></pre>
+        </div>
+      </div>
+      <div class="card">
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl get ns</td><td>List namespaces</td><td><code>kubectl get ns</code></td></tr>
+          <tr><td>kubectl create ns</td><td>Create namespace</td><td><code>kubectl create ns staging</code></td></tr>
+          <tr><td>kubectl -n NS</td><td>Target a namespace</td><td><code>kubectl get pods -n production</code></td></tr>
+          <tr><td>kubectl delete ns</td><td>Delete NS + all resources</td><td><code>kubectl delete ns dev</code></td></tr>
+        </table>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Namespace = Office Floor.</strong> Same building (cluster), different floors (namespaces). You can call someone on another floor using their full address (<code>service.namespace.svc.cluster.local</code>), not just their name.</p></div>
+      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> <code>kubectl delete namespace production</code> deletes EVERYTHING inside — all pods, services, configs, secrets. Always double-check!</div></div>
+    </div>
+
+    <!-- CONFIGMAPS -->
+    <div id="sec-configmaps" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 8</span><span class="tag tag-yellow">Config</span></div>
+        <h1>ConfigMaps</h1>
+        <p>ConfigMaps store non-sensitive configuration as key-value pairs, separate from the container image. Inject them into pods as environment variables or mounted files.</p>
+      </div>
+      <div class="card"><h3>Real-World Example</h3><p>Same Docker image deployed to dev and prod. ConfigMap holds <code>DATABASE_URL</code>, <code>LOG_LEVEL</code>, <code>API_ENDPOINT</code>. Change config without rebuilding the image — just update the ConfigMap and restart pods.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>configmap.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  LOG_LEVEL: "debug"
+  DATABASE_URL: "postgres://db:5432/myapp"
+  config.ini: |
+    [app]
+    port=8080
+    debug=true</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>pod-with-configmap.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">spec:
+  containers:
+  - name: myapp
+    image: myapp:v1
+    # Method 1: Environment variables
+    envFrom:
+    - configMapRef:
+        name: app-config
+    # Method 2: Volume mount (for files)
+    volumeMounts:
+    - name: config-vol
+      mountPath: /etc/config
+  volumes:
+  - name: config-vol
+    configMap:
+      name: app-config</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl apply -f configmap.yaml
+kubectl get configmap
+kubectl describe configmap app-config
+kubectl create configmap env-config --from-literal=ENV=prod
+kubectl create configmap file-config --from-file=app.conf</code></pre>
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>ConfigMap = .env file</strong> but for Kubernetes. You wouldn't hardcode your DB URL in your app code — don't hardcode it in your Docker image either. Externalize it!</p></div>
+      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> ConfigMaps are NOT for passwords or API keys — those go in <strong>Secrets</strong>. ConfigMaps are stored in etcd unencrypted, visible to anyone with cluster access.</div></div>
+    </div>
+
+    <!-- SECRETS -->
+    <div id="sec-secrets" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 9</span><span class="tag tag-red">Security</span></div>
+        <h1>Secrets</h1>
+        <p>Secrets store sensitive data (passwords, tokens, TLS certs) in base64-encoded form. K8s provides access controls and encryption-at-rest for Secrets, unlike ConfigMaps.</p>
+      </div>
+      <div class="card"><h3>Real-World Example</h3><p>Your app connects to a database. Store <code>DB_PASSWORD</code> and <code>API_TOKEN</code> in a Secret. Mount it as env vars or a file. No passwords in code, no passwords in Docker images, no passwords in Git history.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>bash – Create secrets</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash"># From literals (values auto base64-encoded)
+kubectl create secret generic db-secret \
+  --from-literal=username=admin \
+  --from-literal=password=Sup3rS3cr3t!
+
+# From file
+kubectl create secret generic tls-secret \
+  --from-file=tls.crt=server.crt \
+  --from-file=tls.key=server.key
+
+# View (base64 encoded)
+kubectl get secret db-secret -o yaml
+# Decode
+kubectl get secret db-secret -o jsonpath='{.data.password}' | base64 -d</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>pod-with-secret.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">spec:
+  containers:
+  - name: app
+    image: myapp:v1
+    env:
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-secret
+          key: password
+    volumeMounts:
+    - name: secret-vol
+      mountPath: /run/secrets
+      readOnly: true
+  volumes:
+  - name: secret-vol
+    secret:
+      secretName: db-secret</code></pre>
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>ConfigMap = Plain envelope. Secret = Sealed envelope.</strong> Both carry messages (config). But Secrets are sealed (base64 + RBAC + optional encryption-at-rest). Don't put bank details in a plain envelope!</p></div>
+      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Base64 is NOT encryption! Anyone with cluster access can decode it. Enable etcd encryption-at-rest and use RBAC to restrict Secret access in production.</div></div>
+    </div>
+
+    <!-- VOLUMES -->
+    <div id="sec-volumes" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 10</span><span class="tag tag-green">Storage</span></div>
+        <h1>Volumes &amp; Persistent Volumes</h1>
+        <p>Kubernetes volumes give containers a place to store data that outlives a container restart. PersistentVolumes (PV) and PersistentVolumeClaims (PVC) provide durable cluster-level storage.</p>
+      </div>
+      <div class="card"><h3>Why Persistent Volumes?</h3><p>Container filesystem is ephemeral — restart = data gone. PV is a cluster resource (like a USB drive). A PVC is a request for storage. Pods use PVCs, not PVs directly — decoupling workload from infrastructure.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>pv-pvc.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-local
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: /data/pv1    # KIND-friendly (hostPath)
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+---
+# Use PVC in a Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-pod
+spec:
+  containers:
+  - name: postgres
+    image: postgres:15
+    volumeMounts:
+    - mountPath: /var/lib/postgresql/data
+      name: db-storage
+  volumes:
+  - name: db-storage
+    persistentVolumeClaim:
+      claimName: pvc-app</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl get pv       # Check PV status (Available/Bound)
+kubectl get pvc      # Check PVC binding
+kubectl describe pvc pvc-app</code></pre>
+        </div>
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+graph LR
+  P["Pod"] -->|mounts| PVC["PVC\n(request: 500Mi)"]
+  PVC -->|bound to| PV["PV\n(capacity: 1Gi)"]
+  PV -->|backed by| ST["Storage\n(hostPath/NFS/EBS/GCS)"]
+  style P fill:#7c3aed,stroke:#a78bfa,color:#fff
+  style PVC fill:#1d4ed8,stroke:#60a5fa,color:#fff
+  style PV fill:#065f46,stroke:#34d399,color:#fff
+  style ST fill:#78350f,stroke:#fbbf24,color:#fff
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>PV = Parking Lot. PVC = Parking Ticket. Pod = Car.</strong> You claim a spot (PVC), the lot gives you a real space (PV). Your car (Pod) doesn't care which exact spot — just that it's parked somewhere.</p></div>
+      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> PVC stays <code>Pending</code> when no PV matches the access mode or storage size. Check <code>kubectl describe pvc</code> → Events section for exact reason.</div></div>
+    </div>
+
+    <!-- INGRESS -->
+    <div id="sec-ingress" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 11</span><span class="tag tag-purple">Networking</span></div>
+        <h1>Ingress</h1>
+        <p>Ingress manages external HTTP/HTTPS access to services using host/path-based routing rules. One Ingress replaces many LoadBalancer services — one external IP, many backends.</p>
+      </div>
+      <div class="card"><h3>Real-World Example</h3><p><code>api.myapp.com/users</code> → backend service. <code>api.myapp.com/orders</code> → orders service. <code>app.myapp.com</code> → frontend service. All via ONE Nginx Ingress Controller and ONE external IP.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>bash – Install Ingress Controller (KIND)</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash"># Install NGINX Ingress Controller for KIND
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=90s</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>ingress.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: myapp.local
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80</code></pre>
+        </div>
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+graph LR
+  I["🌐 Internet\nmyapp.local"] --> IC["Ingress Controller\n(Nginx Pod)"]
+  IC -->|"/api"| AS["api-service\n:80"]
+  IC -->|"/"| FS["frontend-service\n:80"]
+  AS --> AP["API Pods"]
+  FS --> FP["Frontend Pods"]
+  style I fill:#1e3a5f,stroke:#38bdf8,color:#fff
+  style IC fill:#7c3aed,stroke:#a78bfa,color:#fff
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Ingress = Hotel Concierge.</strong> One front desk, many rooms. You say "I'm here for Room /api" and the concierge (Ingress) routes you to the right service without you needing each room's direct number.</p></div>
+    </div>
+
+    <!-- AUTOSCALING -->
+    <div id="sec-autoscaling" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 12</span><span class="tag tag-green">Scale</span></div>
+        <h1>Autoscaling</h1>
+        <p>K8s has three autoscalers: HPA scales pod replicas based on CPU/memory, VPA adjusts pod resource requests, and Cluster Autoscaler adds/removes nodes. HPA is the most common.</p>
+      </div>
+      <div class="card"><h3>Real-World Example</h3><p>Black Friday traffic spikes 10x. HPA detects CPU > 70%, scales your Deployment from 3 → 20 pods automatically. Traffic drops? Scales back to 3. You sleep through the night.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>bash – Enable metrics server (KIND)</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+# For KIND, patch to allow insecure TLS:
+kubectl patch deployment metrics-server -n kube-system \
+  --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>hpa.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-deploy
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">kubectl apply -f hpa.yaml
+kubectl get hpa                          # Watch scaling events
+kubectl top pods                         # CPU/Memory usage
+kubectl top nodes
+# Quick imperative HPA:
+kubectl autoscale deployment nginx-deploy --cpu-percent=70 --min=2 --max=10</code></pre>
+        </div>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>HPA = Elastic waistband on your trousers.</strong> Sets minimum (can't go below), maximum (won't burst), and expands/contracts based on how much you eat (load). Comfortable in all situations!</p></div>
+      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> HPA won't work without <code>resources.requests.cpu</code> set on the container. It needs a baseline to calculate percentage utilization.</div></div>
+    </div>
+
+    <!-- HELM -->
+    <div id="sec-helm" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 13</span><span class="tag tag-purple">Package Manager</span></div>
+        <h1>Helm Basics</h1>
+        <p>Helm is the package manager for Kubernetes. Charts are templated YAML bundles. Instead of managing 20 raw YAML files, you install, upgrade, and rollback apps with one command.</p>
+      </div>
+      <div class="card"><h3>Real-World Example</h3><p>Install Prometheus + Grafana monitoring stack in one command: <code>helm install monitoring prometheus-community/kube-prometheus-stack</code>. Customise with values.yaml. Upgrade when new chart version releases. No manual YAML editing of 100+ files.</p></div>
+      <div class="card">
+        <div class="code-block">
+          <div class="code-header"><span>bash – Install Helm</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>bash – Common Helm operations</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash"># Add a chart repo
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+# Search for charts
+helm search repo nginx
+helm search hub wordpress
+
+# Install a chart
+helm install my-nginx bitnami/nginx
+helm install my-nginx bitnami/nginx --namespace prod --create-namespace
+
+# Customize with values
+helm install my-app ./mychart -f values-prod.yaml
+helm install my-app ./mychart --set replicaCount=3
+
+# Lifecycle management
+helm list                          # Installed releases
+helm status my-nginx               # Release status
+helm upgrade my-nginx bitnami/nginx --set replicaCount=3
+helm rollback my-nginx 1           # Rollback to revision 1
+helm uninstall my-nginx            # Remove release
+
+# Inspect before install
+helm show values bitnami/nginx > values.yaml
+helm template my-app ./mychart     # Render templates locally</code></pre>
+        </div>
+      </div>
+      <div class="card">
+        <table class="cmd-table">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>helm repo add</td><td>Add chart repository</td><td><code>helm repo add stable https://charts.helm.sh/stable</code></td></tr>
+          <tr><td>helm install</td><td>Deploy a chart</td><td><code>helm install redis bitnami/redis</code></td></tr>
+          <tr><td>helm upgrade</td><td>Update release</td><td><code>helm upgrade redis bitnami/redis --set auth.enabled=false</code></td></tr>
+          <tr><td>helm rollback</td><td>Revert to revision</td><td><code>helm rollback redis 2</code></td></tr>
+          <tr><td>helm list</td><td>Installed releases</td><td><code>helm list -A</code></td></tr>
+          <tr><td>helm uninstall</td><td>Remove release</td><td><code>helm uninstall redis</code></td></tr>
+        </table>
+      </div>
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Helm = apt/brew for K8s.</strong> Just like <code>apt install nginx</code> installs Nginx on Linux, <code>helm install</code> deploys a full K8s app. Charts = packages. Values = config flags. Releases = installed apps.</p></div>
+    </div>
+
+    <!-- DEBUGGING -->
+    <div id="sec-debugging" class="section">
+      <div class="topic-header">
+        <div class="topic-meta"><span class="tag tag-blue">Topic 14</span><span class="tag tag-red">Operations</span></div>
+        <h1>Debugging Kubernetes</h1>
+        <p>When things break, follow a systematic top-down approach: Deployment → ReplicaSet → Pod → Container → Logs → Events. K8s always tells you what's wrong — you just need to ask the right questions.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔍 Debug Decision Tree</div>
+        <div class="mermaid-wrap">
+          <div class="mermaid">
+flowchart TD
+  S["App Not Working"] --> P{"kubectl get pods\nStatus?"}
+  P -->|Pending| PE["kubectl describe pod\nCheck: Insufficient resources?\nNo matching node?"]
+  P -->|CrashLoopBackOff| CL["kubectl logs pod\nkubectl logs pod --previous\nCheck: App crash? Bad config?"]
+  P -->|ImagePullBackOff| IP["Check image name/tag\nCheck registry credentials\nkubectl describe pod → Events"]
+  P -->|Running| R{"Can reach service?"}
+  R -->|No| SV["kubectl get endpoints\nCheck: selector matches pod labels?"]
+  R -->|Yes| OK["✅ App is healthy!"]
+  PE -->|Fix| FX["Add resources/fix node selector"]
+  CL -->|Fix| FX2["Fix app code or config"]
+  IP -->|Fix| FX3["Fix image name or add imagePullSecret"]
+  SV -->|Fix| FX4["Fix service selector to match pod labels"]
+  style S fill:#7f1d1d,stroke:#f87171,color:#fff
+  style OK fill:#065f46,stroke:#34d399,color:#fff
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🛠️ Debugging Toolkit</div>
+        <div class="code-block">
+          <div class="code-header"><span>bash – Complete debugging workflow</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash"># 1. Check overall health
+kubectl get nodes
+kubectl get pods -A | grep -v Running | grep -v Completed
+
+# 2. Describe failing pod (events are gold!)
+kubectl describe pod POD_NAME
+
+# 3. Application logs
+kubectl logs POD_NAME
+kubectl logs POD_NAME --previous          # Crashed container logs
+kubectl logs POD_NAME -c CONTAINER_NAME  # Multi-container pod
+kubectl logs POD_NAME -f --tail=100       # Stream last 100 lines
+
+# 4. Shell into container
+kubectl exec -it POD_NAME -- bash
+kubectl exec -it POD_NAME -- sh          # If no bash
+
+# 5. Run a debug sidecar
+kubectl debug -it POD_NAME --image=busybox --target=mycontainer
+
+# 6. Check service endpoints
+kubectl get endpoints SVC_NAME
+kubectl describe svc SVC_NAME
+
+# 7. Check events (most useful!)
+kubectl get events --sort-by='.lastTimestamp' -n default
+kubectl get events --field-selector type=Warning
+
+# 8. Test DNS from inside cluster
+kubectl run dns-test --image=busybox --rm -it --restart=Never -- nslookup kubernetes
+
+# 9. Resource usage
+kubectl top pods
+kubectl top nodes
+
+# 10. Check resource quotas
+kubectl describe resourcequota -n NAMESPACE</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 Common Error → Fix</div>
+        <table class="cmd-table">
+          <tr><th>Error</th><th>Cause</th><th>Fix</th></tr>
+          <tr><td>CrashLoopBackOff</td><td>App crashes on start</td><td><code>kubectl logs pod --previous</code></td></tr>
+          <tr><td>ImagePullBackOff</td><td>Wrong image / no auth</td><td>Check image name, add imagePullSecret</td></tr>
+          <tr><td>Pending (no nodes)</td><td>No schedulable nodes</td><td>Check node taints, resource requests</td></tr>
+          <tr><td>OOMKilled</td><td>Memory limit exceeded</td><td>Increase <code>resources.limits.memory</code></td></tr>
+          <tr><td>CreateContainerError</td><td>Bad volume/secret mount</td><td><code>kubectl describe pod</code> → Events</td></tr>
+          <tr><td>Endpoints: &lt;none&gt;</td><td>Service selector mismatch</td><td>Check service selector vs pod labels</td></tr>
+        </table>
+      </div>
+
+      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>G-D-L-E-E</strong> = <strong>G</strong>et (what's the status?) → <strong>D</strong>escribe (what happened?) → <strong>L</strong>ogs (what did it say?) → <strong>E</strong>xec (can I get in?) → <strong>E</strong>vents (timeline of truth). 5 steps to solve 95% of K8s issues.</p></div>
+    </div>
+
+  </div><!-- end content -->
+</main>
+
+<script>
+// Init mermaid
+mermaid.initialize({startOnLoad:true,theme:'dark',themeVariables:{primaryColor:'#1d4ed8',primaryTextColor:'#e2e8f0',primaryBorderColor:'#3b82f6',lineColor:'#64748b',secondaryColor:'#1e293b',tertiaryColor:'#334155',background:'#0f172a',mainBkg:'#1e293b',nodeBorder:'#475569',clusterBkg:'#0f172a',titleColor:'#e2e8f0',edgeLabelBackground:'#1e293b',fontFamily:'Segoe UI,system-ui,sans-serif'}});
+
+// Section navigation
+const sectionMap = {
+  'home':'Home & Overview','kind-setup':'KIND Cluster Setup','kubectl':'kubectl Basics',
+  'pods':'Pods','replicasets':'ReplicaSets','deployments':'Deployments',
+  'services':'Services','namespaces':'Namespaces','configmaps':'ConfigMaps',
+  'secrets':'Secrets','volumes':'Volumes & Persistent Volumes','ingress':'Ingress',
+  'autoscaling':'Autoscaling','helm':'Helm Basics','debugging':'Debugging Kubernetes'
+};
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  const sec = document.getElementById('sec-'+id);
+  if(sec) sec.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(i=>{
+    if(i.textContent.includes(sectionMap[id]?.substring(0,8))) i.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = sectionMap[id]||'Kubernetes from Scratch';
+  window.scrollTo(0,0);
+  // Update progress
+  const keys = Object.keys(sectionMap);
+  const idx = keys.indexOf(id);
+  document.getElementById('progress').style.width = ((idx+1)/keys.length*100)+'%';
+  // Re-render mermaid in new section
+  setTimeout(()=>mermaid.run({nodes:sec.querySelectorAll('.mermaid')}),100);
+  // Re-highlight code
+  sec.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
+  // close sidebar on mobile
+  if(window.innerWidth<=900) document.getElementById('sidebar').classList.remove('open');
+}
+
+// Copy buttons
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(()=>{
+    btn.textContent='Copied!';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied')},2000);
+  });
+}
+
+// Theme toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.classList.contains('light');
+  html.classList.toggle('light',!isLight);
+  mermaid.initialize({startOnLoad:false,theme:isLight?'dark':'default'});
+}
+
+// Search
+function searchTopics(q) {
+  const items = document.querySelectorAll('.nav-item');
+  const low = q.toLowerCase();
+  items.forEach(i=>i.style.display=(!q||i.textContent.toLowerCase().includes(low))?'':'none');
+  document.querySelectorAll('.nav-group-title').forEach(g=>{
+    const grp = g.nextElementSibling?.parentElement;
+  });
+}
+
+// Sidebar toggle (mobile)
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// Init highlight
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
+});
+</script>
+</body>
+</html>
