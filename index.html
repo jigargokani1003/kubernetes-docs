@@ -1,1295 +1,1468 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>K8s from Scratch – KIND Edition</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"/>
+<title>K8s Mastery by Jigar | Kubernetes from Scratch</title>
 <style>
-  :root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#38bdf8;--accent2:#818cf8;--border:#334155;--green:#4ade80;--yellow:#fbbf24;--red:#f87171;--card:#1e293b}
-  .light{--bg:#f8fafc;--bg2:#fff;--bg3:#f1f5f9;--text:#1e293b;--text2:#64748b;--accent:#0284c7;--accent2:#6366f1;--border:#e2e8f0;--green:#16a34a;--yellow:#d97706;--red:#dc2626;--card:#fff}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;min-height:100vh}
-  a{color:var(--accent);text-decoration:none}
-  /* Sidebar */
-  #sidebar{width:270px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);position:fixed;top:0;left:0;overflow-y:auto;z-index:100;transition:transform .3s}
-  #sidebar.closed{transform:translateX(-270px)}
-  .sidebar-header{padding:20px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-  .logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .nav-search{padding:12px 12px 8px}
-  .nav-search input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;outline:none}
-  .nav-search input:focus{border-color:var(--accent)}
-  .nav-group{margin:4px 0}
-  .nav-group-title{padding:8px 16px 4px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em}
-  .nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-radius:6px;margin:1px 8px;transition:all .15s}
-  .nav-item:hover,.nav-item.active{background:var(--bg3);color:var(--accent)}
-  .nav-item .badge{margin-left:auto;background:var(--bg3);border-radius:10px;padding:1px 7px;font-size:11px;color:var(--text2)}
-  .nav-item.active .badge{background:var(--accent);color:#fff}
-  /* Main */
-  #main{margin-left:270px;flex:1;min-height:100vh;transition:margin .3s}
-  #main.full{margin-left:0}
-  /* Topbar */
-  .topbar{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:14px}
-  .topbar-title{font-size:16px;font-weight:600;flex:1}
-  .btn{border:none;cursor:pointer;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;transition:all .15s}
-  .btn-ghost{background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
-  .btn-ghost:hover{background:var(--bg3);color:var(--text)}
-  .btn-accent{background:var(--accent);color:#fff}
-  .btn-sm{padding:4px 10px;font-size:12px;border-radius:6px}
-  /* Content */
-  .content{padding:32px 36px;max-width:960px}
-  .section{display:none}
-  .section.active{display:block}
-  /* Cards */
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:22px}
-  .card-title{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-  .tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
-  .tag-blue{background:#0ea5e940;color:#38bdf8}
-  .tag-green{background:#4ade8040;color:#4ade80}
-  .tag-purple{background:#818cf840;color:#818cf8}
-  .tag-yellow{background:#fbbf2440;color:#fbbf24}
-  .tag-red{background:#f8717140;color:#f87171}
-  /* Headings */
-  h1{font-size:30px;font-weight:800;margin-bottom:8px}
-  h2{font-size:20px;font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-  h3{font-size:15px;font-weight:700;margin-bottom:10px}
-  p{font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:10px}
-  /* Code blocks */
-  .code-block{position:relative;background:#0d1117;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
-  .code-header{background:#161b22;padding:8px 14px;font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-  .code-block pre{margin:0;padding:14px 16px;font-size:13px;overflow-x:auto;line-height:1.6}
-  .code-block code{background:none!important;padding:0!important}
-  .copy-btn{background:#334155;border:none;color:#94a3b8;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .15s}
-  .copy-btn:hover{background:var(--accent);color:#fff}
-  .copy-btn.copied{background:var(--green);color:#fff}
-  /* Tables */
-  .cmd-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
-  .cmd-table th{background:var(--bg3);padding:10px 14px;text-align:left;font-weight:700;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
-  .cmd-table td{padding:10px 14px;border-top:1px solid var(--border);color:var(--text2);vertical-align:top}
-  .cmd-table td:first-child{color:var(--accent);font-family:monospace;font-size:12.5px;white-space:nowrap}
-  .cmd-table td code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--green)}
-  .cmd-table tr:hover td{background:var(--bg3)}
-  /* Mermaid */
-  .mermaid-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;overflow-x:auto;margin-bottom:14px;text-align:center}
-  /* Steps */
-  .steps{counter-reset:step}
-  .step{display:flex;gap:16px;margin-bottom:18px;align-items:flex-start}
-  .step-num{min-width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;margin-top:2px}
-  .step-content h4{font-size:14px;font-weight:700;margin-bottom:6px}
-  /* Alert boxes */
-  .alert{border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;line-height:1.6}
-  .alert-blue{background:#0ea5e915;border:1px solid #0ea5e950;color:#38bdf8}
-  .alert-green{background:#4ade8015;border:1px solid #4ade8050;color:#4ade80}
-  .alert-yellow{background:#fbbf2415;border:1px solid #fbbf2450;color:#fbbf24}
-  .alert-red{background:#f8717115;border:1px solid #f8717150;color:#f87171}
-  .alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
-  /* Memory trick */
-  .memory-trick{background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca60;border-radius:10px;padding:16px;margin-bottom:14px}
-  .memory-trick .mt-title{font-size:12px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
-  .memory-trick p{color:#c7d2fe;margin:0}
-  /* Topic header */
-  .topic-header{margin-bottom:28px}
-  .topic-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-  /* Home hero */
-  .hero{padding:40px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px}
-  .hero-badge{display:inline-block;background:var(--accent)20;border:1px solid var(--accent)60;color:var(--accent);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;margin-bottom:14px}
-  .hero p{font-size:15px;color:var(--text2);max-width:600px;line-height:1.75}
-  /* Grid */
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  @media(max-width:700px){.grid2{grid-template-columns:1fr}}
-  /* Mobile toggle */
-  #sidebar-toggle{display:none}
-  @media(max-width:900px){
-    #sidebar{transform:translateX(-270px)}
-    #sidebar.open{transform:translateX(0)}
-    #main{margin-left:0}
-    #sidebar-toggle{display:block}
-    .content{padding:20px 16px}
-    h1{font-size:22px}
-    .grid2{grid-template-columns:1fr}
-  }
-  /* Progress */
-  .progress-bar{height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));position:fixed;top:0;left:0;z-index:200;transition:width .3s;border-radius:0 2px 2px 0}
+:root{
+  --bg:#0a0f1e;--bg2:#111827;--bg3:#1f2937;--bg4:#374151;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;
+  --border:#1f2937;--border2:#374151;
+  --card:#111827;--card2:#1a2332;
+  --green:#34d399;--yellow:#fbbf24;--red:#f87171;--purple:#a78bfa;
+  --glow:0 0 20px rgba(56,189,248,0.15);
+}
+.light{
+  --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--bg4:#e2e8f0;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --accent:#0284c7;--accent2:#6366f1;--accent3:#059669;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --card:#ffffff;--card2:#f8fafc;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;--purple:#7c3aed;
+  --glow:0 0 20px rgba(2,132,199,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;transition:background .2s,color .2s}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;min-height:100vh;line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+/* ===== SIDEBAR ===== */
+#sidebar{width:280px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);position:fixed;top:0;left:0;overflow-y:auto;z-index:200;display:flex;flex-direction:column}
+.sidebar-logo{padding:20px 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-text{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.sidebar-search{padding:12px 14px 8px}
+.sidebar-search input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:8px 32px 8px 12px;font-size:13px;outline:none}
+.sidebar-search input:focus{border-color:var(--accent)}
+.sidebar-search{position:relative}
+.search-icon{position:absolute;right:22px;top:20px;color:var(--text3);font-size:14px;pointer-events:none}
+.nav-section{padding:6px 0}
+.nav-section-title{padding:6px 18px 3px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 18px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;user-select:none}
+.nav-item:hover{background:var(--bg3);color:var(--text);border-left-color:var(--border2)}
+.nav-item.active{background:linear-gradient(90deg,var(--accent)15,transparent);color:var(--accent);border-left-color:var(--accent);font-weight:600}
+.nav-item .num{margin-left:auto;background:var(--bg4);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--text3)}
+.nav-item.active .num{background:var(--accent);color:#fff}
+.nav-item .icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+/* ===== TOPBAR ===== */
+#main{margin-left:280px;flex:1;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:100;background:var(--bg)ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 28px;display:flex;align-items:center;gap:12px}
+.topbar-breadcrumb{font-size:13px;color:var(--text3);flex:1}
+.topbar-breadcrumb span{color:var(--text);font-weight:600}
+.btn{border:1px solid var(--border2);background:var(--bg3);color:var(--text2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn:hover{background:var(--bg4);color:var(--text)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:12px;border-radius:6px}
+/* ===== PROGRESS ===== */
+#progress-bar{height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));position:fixed;top:0;left:280px;right:0;z-index:300;transform-origin:left;transform:scaleX(0);transition:transform .4s}
+/* ===== CONTENT ===== */
+.content{padding:36px 40px;max-width:1000px;margin:0 auto}
+.section{display:none}
+.section.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* ===== HERO ===== */
+.hero{padding:10px 0 32px;border-bottom:1px solid var(--border);margin-bottom:32px}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent)20;border:1px solid var(--accent)40;color:var(--accent);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;margin-bottom:16px}
+.hero h1{font-size:36px;font-weight:900;letter-spacing:-1px;margin-bottom:8px;background:linear-gradient(135deg,var(--text) 60%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:15px;color:var(--text2);max-width:640px;line-height:1.8}
+.stats-row{display:flex;gap:20px;margin-top:20px;flex-wrap:wrap}
+.stat{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 20px;text-align:center}
+.stat-num{font-size:22px;font-weight:800;color:var(--accent)}
+.stat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+/* ===== CARDS ===== */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:20px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+/* ===== TOPIC HEADER ===== */
+.topic-header{margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.topic-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.tag-blue{background:var(--accent)20;color:var(--accent);border:1px solid var(--accent)40}
+.tag-green{background:var(--green)20;color:var(--green);border:1px solid var(--green)40}
+.tag-purple{background:var(--purple)20;color:var(--purple);border:1px solid var(--purple)40}
+.tag-yellow{background:var(--yellow)20;color:var(--yellow);border:1px solid var(--yellow)40}
+.tag-red{background:var(--red)20;color:var(--red);border:1px solid var(--red)40}
+.topic-header h1{font-size:28px;font-weight:800;margin-bottom:10px;letter-spacing:-.5px}
+.topic-header p{font-size:14px;color:var(--text2);max-width:680px;line-height:1.75}
+/* ===== CODE BLOCKS ===== */
+.code-block{background:#0d1117;border:1px solid #30363d;border-radius:10px;overflow:hidden;margin-bottom:14px}
+.code-header{background:#161b22;padding:9px 14px;font-size:12px;color:#8b949e;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #30363d}
+.code-lang{display:flex;align-items:center;gap:6px}
+.code-dot{width:10px;height:10px;border-radius:50%}
+.code-block pre{margin:0;padding:16px;font-size:13px;overflow-x:auto;line-height:1.65}
+.code-block code{font-family:'Cascadia Code','Fira Code',monospace;font-size:13px}
+.copy-btn{background:transparent;border:1px solid #30363d;color:#8b949e;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .15s}
+.copy-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.copy-btn.copied{background:var(--green);color:#fff;border-color:var(--green)}
+/* ===== TABLES ===== */
+.tbl-wrap{overflow-x:auto;margin-bottom:14px;border-radius:10px;border:1px solid var(--border)}
+table.cmd{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+table.cmd th{background:var(--bg3);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border2)}
+table.cmd td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top}
+table.cmd tr:last-child td{border-bottom:none}
+table.cmd td:first-child{font-family:monospace;font-size:12.5px;color:var(--accent);white-space:nowrap}
+table.cmd td code{background:var(--bg4);padding:2px 7px;border-radius:4px;font-size:12px;color:var(--green);font-family:monospace}
+table.cmd tr:hover td{background:var(--bg3)}
+/* ===== ALERTS ===== */
+.alert{border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;display:flex;gap:10px;line-height:1.65}
+.alert-icon{font-size:16px;flex-shrink:0}
+.alert-blue{background:var(--accent)12;border:1px solid var(--accent)35;color:var(--accent)}
+.alert-green{background:var(--green)12;border:1px solid var(--green)35;color:var(--green)}
+.alert-yellow{background:var(--yellow)12;border:1px solid var(--yellow)35;color:var(--yellow)}
+.alert-red{background:var(--red)12;border:1px solid var(--red)35;color:var(--red)}
+.alert strong{font-weight:700}
+/* ===== MEMORY TRICK ===== */
+.trick{background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca50;border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.trick-title{font-size:10px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
+.trick p{color:#ddd6fe;font-size:13px;margin:0;line-height:1.65}
+/* ===== STEPS ===== */
+.steps .step{display:flex;gap:14px;margin-bottom:16px}
+.step-num{min-width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-body h4{font-size:14px;font-weight:700;margin-bottom:5px}
+.step-body p{font-size:13px;color:var(--text2);line-height:1.65}
+/* ===== INTERACTIVE DIAGRAM ===== */
+.diagram-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;overflow-x:auto}
+.diagram-box svg{max-width:100%}
+/* ===== INTERACTIVE TERMINAL ===== */
+.terminal{background:#0d1117;border:1px solid #30363d;border-radius:10px;overflow:hidden;margin-bottom:14px}
+.term-bar{background:#161b22;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #30363d}
+.term-dot{width:11px;height:11px;border-radius:50%}
+.term-title{font-size:12px;color:#8b949e;margin-left:4px}
+.term-body{padding:14px 16px;font-family:'Cascadia Code','Fira Code',monospace;font-size:12.5px;line-height:1.8}
+.term-line{margin:0}
+.term-prompt{color:#58a6ff}
+.term-cmd{color:#e6edf3}
+.term-out{color:#8b949e}
+.term-success{color:#3fb950}
+.term-warn{color:#d29922}
+.term-err{color:#f85149}
+/* ===== QUIZ ===== */
+.quiz-box{background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:22px;margin-bottom:20px}
+.quiz-q{font-size:15px;font-weight:600;margin-bottom:16px}
+.quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quiz-opt{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:13px;cursor:pointer;transition:all .15s;text-align:left}
+.quiz-opt:hover{border-color:var(--accent);color:var(--accent)}
+.quiz-opt.correct{background:var(--green)20;border-color:var(--green);color:var(--green)}
+.quiz-opt.wrong{background:var(--red)20;border-color:var(--red);color:var(--red)}
+.quiz-opt:disabled{cursor:default}
+.quiz-explain{margin-top:12px;padding:10px 14px;background:var(--bg4);border-radius:8px;font-size:13px;color:var(--text2);display:none}
+/* ===== DONATE ===== */
+.donate-bar{background:linear-gradient(135deg,#1a1333,#0f2027);border:1px solid var(--purple)40;border-radius:12px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.donate-bar .donate-text h3{font-size:15px;font-weight:700;color:var(--purple)}
+.donate-bar .donate-text p{font-size:12px;color:var(--text3);margin-top:2px}
+.donate-btns{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.btn-donate{background:var(--purple);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn-donate:hover{opacity:.85}
+.btn-coffee{background:#FFDD00;color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-coffee:hover{opacity:.85}
+/* ===== ADSENSE ===== */
+.ad-slot{background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;color:var(--text3);font-size:12px;margin-bottom:20px}
+/* ===== MOBILE ===== */
+#toggle-btn{display:none;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer}
+@media(max-width:900px){
+  #sidebar{transform:translateX(-280px);transition:transform .3s}
+  #sidebar.open{transform:translateX(0)}
+  #main{margin-left:0}
+  #toggle-btn{display:flex}
+  #progress-bar{left:0}
+  .content{padding:20px 16px}
+  .hero h1{font-size:26px}
+  .quiz-opts{grid-template-columns:1fr}
+}
+/* ===== SCROLLBAR ===== */
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-track{background:transparent}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+/* ===== BACK NAV ===== */
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text3);cursor:pointer;margin-bottom:18px;padding:6px 0}
+.back-btn:hover{color:var(--accent)}
+/* ===== INTERACTIVE CLUSTER ===== */
+.cluster-demo{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:0;overflow:hidden;margin-bottom:14px}
+.cluster-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg3)}
+.cluster-tab{padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .15s}
+.cluster-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--bg2)}
+.cluster-panel{padding:20px;display:none}
+.cluster-panel.active{display:block}
+/* Live cluster simulation */
+#live-cluster{position:relative;height:320px}
+.k8s-node{position:absolute;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px;font-size:11px}
+.k8s-node.cp{border-color:var(--accent);background:var(--accent)08}
+.k8s-node.worker{border-color:var(--green);background:var(--green)05}
+.k8s-node-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.k8s-node.cp .k8s-node-title{color:var(--accent)}
+.k8s-node.worker .k8s-node-title{color:var(--green)}
+.pod-pill{display:inline-flex;align-items:center;gap:3px;background:var(--accent)25;border:1px solid var(--accent)50;color:var(--accent);border-radius:10px;padding:2px 7px;font-size:10px;margin:2px;cursor:default}
+.pod-pill.running{background:var(--green)25;border-color:var(--green)50;color:var(--green)}
+.pod-pill.pending{background:var(--yellow)25;border-color:var(--yellow)50;color:var(--yellow)}
+.pod-pill.failed{background:var(--red)25;border-color:var(--red)50;color:var(--red)}
+.pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.cluster-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 </style>
 </head>
 <body>
-<div id="progress" class="progress-bar" style="width:0%"></div>
 
-<!-- Sidebar -->
+<div id="progress-bar"></div>
+
+<!-- SIDEBAR -->
 <nav id="sidebar">
-  <div class="sidebar-header">
-    <span class="logo">⎈ K8s Docs</span>
+  <div class="sidebar-logo">
+    <div>
+      <div class="logo-text">⎈ K8s Mastery</div>
+      <div class="logo-sub">by Jigar · Learn Kubernetes</div>
+    </div>
   </div>
-  <div class="nav-search">
-    <input id="search" type="text" placeholder="Search topics…" oninput="searchTopics(this.value)"/>
+  <div class="sidebar-search">
+    <input id="search-input" type="text" placeholder="Search topics…" oninput="doSearch(this.value)"/>
+    <span class="search-icon">⌕</span>
   </div>
-  <div id="nav-list">
-    <div class="nav-group">
-      <div class="nav-group-title">Getting Started</div>
-      <div class="nav-item active" onclick="showSection('home')">🏠 Home &amp; Overview</div>
-      <div class="nav-item" onclick="showSection('kind-setup')">⚙️ KIND Cluster Setup <span class="badge">1</span></div>
+  <div id="nav-items">
+    <div class="nav-section">
+      <div class="nav-section-title">Start Here</div>
+      <div class="nav-item active" onclick="go('home')" data-search="home overview kubernetes what"><span class="icon">🏠</span>Home & Overview</div>
+      <div class="nav-item" onclick="go('kind')" data-search="kind setup install docker kubectl cluster"><span class="icon">⚙️</span>KIND Cluster Setup<span class="num">1</span></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">Core Concepts</div>
-      <div class="nav-item" onclick="showSection('kubectl')">🔧 kubectl Basics <span class="badge">2</span></div>
-      <div class="nav-item" onclick="showSection('pods')">📦 Pods <span class="badge">3</span></div>
-      <div class="nav-item" onclick="showSection('replicasets')">🔁 ReplicaSets <span class="badge">4</span></div>
-      <div class="nav-item" onclick="showSection('deployments')">🚀 Deployments <span class="badge">5</span></div>
+    <div class="nav-section">
+      <div class="nav-section-title">Core Concepts</div>
+      <div class="nav-item" onclick="go('kubectl')" data-search="kubectl basics commands cli context dry-run"><span class="icon">🔧</span>kubectl Basics<span class="num">2</span></div>
+      <div class="nav-item" onclick="go('pods')" data-search="pods run get logs exec lifecycle"><span class="icon">📦</span>Pods<span class="num">3</span></div>
+      <div class="nav-item" onclick="go('rs')" data-search="replicasets replicas scale self-healing"><span class="icon">🔁</span>ReplicaSets<span class="num">4</span></div>
+      <div class="nav-item" onclick="go('deploy')" data-search="deployments rollout rollback update strategy"><span class="icon">🚀</span>Deployments<span class="num">5</span></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">Networking</div>
-      <div class="nav-item" onclick="showSection('services')">🌐 Services <span class="badge">6</span></div>
-      <div class="nav-item" onclick="showSection('ingress')">🔀 Ingress <span class="badge">11</span></div>
+    <div class="nav-section">
+      <div class="nav-section-title">Networking</div>
+      <div class="nav-item" onclick="go('svc')" data-search="services clusterip nodeport loadbalancer expose"><span class="icon">🌐</span>Services<span class="num">6</span></div>
+      <div class="nav-item" onclick="go('ingress')" data-search="ingress nginx routing tls https"><span class="icon">🔀</span>Ingress<span class="num">11</span></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">Configuration</div>
-      <div class="nav-item" onclick="showSection('namespaces')">🗂️ Namespaces <span class="badge">7</span></div>
-      <div class="nav-item" onclick="showSection('configmaps')">🗃️ ConfigMaps <span class="badge">8</span></div>
-      <div class="nav-item" onclick="showSection('secrets')">🔐 Secrets <span class="badge">9</span></div>
+    <div class="nav-section">
+      <div class="nav-section-title">Configuration</div>
+      <div class="nav-item" onclick="go('ns')" data-search="namespaces isolation teams quota"><span class="icon">🗂️</span>Namespaces<span class="num">7</span></div>
+      <div class="nav-item" onclick="go('cm')" data-search="configmap env variables config files"><span class="icon">🗃️</span>ConfigMaps<span class="num">8</span></div>
+      <div class="nav-item" onclick="go('sec')" data-search="secrets passwords tokens tls base64"><span class="icon">🔐</span>Secrets<span class="num">9</span></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">Storage &amp; Scale</div>
-      <div class="nav-item" onclick="showSection('volumes')">💾 Volumes &amp; PV <span class="badge">10</span></div>
-      <div class="nav-item" onclick="showSection('autoscaling')">📈 Autoscaling <span class="badge">12</span></div>
+    <div class="nav-section">
+      <div class="nav-section-title">Storage & Scale</div>
+      <div class="nav-item" onclick="go('vol')" data-search="volumes pv pvc persistent storage hostpath"><span class="icon">💾</span>Volumes & PV<span class="num">10</span></div>
+      <div class="nav-item" onclick="go('hpa')" data-search="autoscaling hpa vpa horizontal pod metrics"><span class="icon">📈</span>Autoscaling<span class="num">12</span></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">Advanced</div>
-      <div class="nav-item" onclick="showSection('helm')">⛵ Helm Basics <span class="badge">13</span></div>
-      <div class="nav-item" onclick="showSection('debugging')">🐛 Debugging K8s <span class="badge">14</span></div>
+    <div class="nav-section">
+      <div class="nav-section-title">Advanced</div>
+      <div class="nav-item" onclick="go('helm')" data-search="helm charts package manager install upgrade"><span class="icon">⛵</span>Helm Basics<span class="num">13</span></div>
+      <div class="nav-item" onclick="go('debug')" data-search="debugging troubleshoot crashloop imagepull oomkilled events"><span class="icon">🐛</span>Debugging K8s<span class="num">14</span></div>
     </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Practice</div>
+      <div class="nav-item" onclick="go('quiz')" data-search="quiz test questions practice exam"><span class="icon">🎯</span>Quiz & Practice</div>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Made with ❤️ by Jigar</div>
+    <button class="btn-coffee" onclick="openCoffee()" style="width:100%;border-radius:8px;padding:8px">☕ Buy Me a Coffee</button>
   </div>
 </nav>
 
-<!-- Main -->
+<!-- MAIN -->
 <main id="main">
   <div class="topbar">
-    <button class="btn btn-ghost btn-sm" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
-    <span class="topbar-title" id="page-title">Kubernetes from Scratch</span>
-    <button class="btn btn-ghost btn-sm" onclick="toggleTheme()">🌙 Theme</button>
+    <button id="toggle-btn" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-breadcrumb">K8s Mastery › <span id="breadcrumb">Home</span></div>
+    <button class="btn btn-sm" onclick="toggleTheme()">🌙 Theme</button>
+    <button class="btn btn-sm btn-primary" onclick="openCoffee()">☕ Support</button>
   </div>
 
   <div class="content">
 
-    <!-- HOME -->
-    <div id="sec-home" class="section active">
-      <div class="hero">
-        <div class="hero-badge">⎈ Kubernetes Learning Path</div>
-        <h1>Kubernetes from Scratch</h1>
-        <h2 style="border:none;padding:0;font-size:16px;font-weight:400;color:var(--text2);margin-bottom:16px">Using KIND Multi-Node Cluster</h2>
-        <p>A hands-on guide to mastering Kubernetes one command at a time. Every topic has a concept, real-world example, command table, architecture diagram, and a memory trick so you never forget.</p>
+  <!-- ======== HOME ======== -->
+  <div id="sec-home" class="section active">
+    <div class="hero">
+      <div class="hero-badge">⎈ Complete Kubernetes Learning Path</div>
+      <h1>Kubernetes from Scratch</h1>
+      <p>Master Kubernetes step-by-step using KIND multi-node clusters. Every topic has commands, interactive diagrams, real examples, and a memory trick — so you never forget.</p>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-num">14</div><div class="stat-lbl">Topics</div></div>
+        <div class="stat"><div class="stat-num">80+</div><div class="stat-lbl">Commands</div></div>
+        <div class="stat"><div class="stat-num">20+</div><div class="stat-lbl">Diagrams</div></div>
+        <div class="stat"><div class="stat-num">Free</div><div class="stat-lbl">Forever</div></div>
       </div>
+    </div>
 
-      <div class="grid2">
-        <div class="card">
-          <div class="card-title">🎯 What is Kubernetes?</div>
-          <p>Kubernetes (K8s) is an open-source container orchestration system. It automates <strong>deployment, scaling, and management</strong> of containerized apps across a cluster of machines.</p>
-          <p>Think of it as an <em>operating system for your data center</em> — it schedules containers, heals failures, and exposes services automatically.</p>
-        </div>
-        <div class="card">
-          <div class="card-title">🐳 What is KIND?</div>
-          <p><strong>K</strong>ubernetes <strong>IN</strong> <strong>D</strong>ocker runs K8s nodes as Docker containers on your laptop. Perfect for learning without cloud costs.</p>
-          <ul style="color:var(--text2);font-size:13px;line-height:2;padding-left:18px">
-            <li>Zero cost — runs locally</li>
-            <li>Multi-node clusters in seconds</li>
-            <li>Mirrors production behavior</li>
-            <li>Fast teardown and recreate</li>
-          </ul>
-        </div>
-      </div>
+    <!-- Google AdSense Slot -->
+    <div class="ad-slot">
+      📢 <strong>Google AdSense Ad</strong> — Replace this div with your AdSense snippet:<br>
+      <code style="font-size:11px;color:var(--text3)">&lt;script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"&gt;&lt;/script&gt;</code>
+    </div>
 
-      <div class="card">
-        <div class="card-title">🗺️ KIND Multi-Node Architecture</div>
-        <div class="mermaid-wrap">
-          <div class="mermaid">
-graph TB
-  subgraph HOST["🖥️ Your Laptop / Dev Machine"]
-    subgraph KIND["KIND Cluster (Docker Network)"]
-      CP["⎈ Control Plane Node\n(Docker Container)\nAPI Server · etcd\nScheduler · Controller Mgr"]
-      W1["⚙️ Worker Node 1\n(Docker Container)\nkubelet · kube-proxy\nContainer Runtime"]
-      W2["⚙️ Worker Node 2\n(Docker Container)\nkubelet · kube-proxy\nContainer Runtime"]
-      CP -->|schedules pods| W1
-      CP -->|schedules pods| W2
-    end
-    KC["kubectl\n(CLI)"] -->|API calls| CP
-    DOC["Docker Engine"] -.->|manages| KIND
-  end
-  style HOST fill:#1e293b,stroke:#334155,color:#e2e8f0
-  style KIND fill:#0f172a,stroke:#38bdf8,color:#e2e8f0
-  style CP fill:#1d4ed8,stroke:#60a5fa,color:#fff
-  style W1 fill:#065f46,stroke:#34d399,color:#fff
-  style W2 fill:#065f46,stroke:#34d399,color:#fff
-  style KC fill:#7c3aed,stroke:#a78bfa,color:#fff
-  style DOC fill:#1e3a5f,stroke:#38bdf8,color:#fff
+    <!-- Live Cluster Demo -->
+    <div class="card">
+      <div class="card-title">⚡ Live KIND Cluster Simulator</div>
+      <div class="cluster-demo">
+        <div class="cluster-tabs">
+          <div class="cluster-tab active" onclick="switchTab(this,'visual')">Visual</div>
+          <div class="cluster-tab" onclick="switchTab(this,'terminal')">Terminal</div>
+          <div class="cluster-tab" onclick="switchTab(this,'yaml')">YAML</div>
+        </div>
+        <div class="cluster-panel active" id="panel-visual">
+          <div id="live-cluster">
+            <div class="k8s-node cp" style="left:10px;top:0;width:200px">
+              <div class="k8s-node-title">⎈ Control Plane</div>
+              <div style="font-size:10px;color:var(--text3)">API Server · etcd<br>Scheduler · Controller</div>
+            </div>
+            <div class="k8s-node worker" id="w1" style="right:10px;top:0;width:190px">
+              <div class="k8s-node-title">⚙ Worker Node 1</div>
+              <div id="pods-w1">
+                <span class="pod-pill running"><span class="pulse"></span>nginx-1</span>
+                <span class="pod-pill running"><span class="pulse"></span>api-1</span>
+              </div>
+            </div>
+            <div class="k8s-node worker" id="w2" style="right:10px;top:135px;width:190px">
+              <div class="k8s-node-title">⚙ Worker Node 2</div>
+              <div id="pods-w2">
+                <span class="pod-pill running"><span class="pulse"></span>nginx-2</span>
+                <span class="pod-pill running"><span class="pulse"></span>db-1</span>
+              </div>
+            </div>
+            <div id="cluster-msg" style="position:absolute;bottom:0;left:0;right:0;font-size:12px;color:var(--green);min-height:20px"></div>
+          </div>
+          <div class="cluster-controls">
+            <button class="btn btn-sm" onclick="simAction('deploy')">+ Deploy Pod</button>
+            <button class="btn btn-sm" onclick="simAction('kill')">💀 Kill Pod</button>
+            <button class="btn btn-sm" onclick="simAction('scale')">↕ Scale ×3</button>
+            <button class="btn btn-sm" onclick="simAction('drain')">🚧 Drain Node</button>
+            <button class="btn btn-sm" onclick="simAction('reset')">↺ Reset</button>
           </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📚 Learning Path</div>
-        <div class="steps">
-          <div class="step"><div class="step-num">1</div><div class="step-content"><h4>KIND Setup</h4><p>Install Docker, kubectl, KIND — create your first multi-node cluster.</p></div></div>
-          <div class="step"><div class="step-num">2</div><div class="step-content"><h4>kubectl Basics</h4><p>Learn the essential CLI commands to talk to your cluster.</p></div></div>
-          <div class="step"><div class="step-num">3</div><div class="step-content"><h4>Pods → ReplicaSets → Deployments</h4><p>Build from the smallest unit up to production-grade workloads.</p></div></div>
-          <div class="step"><div class="step-num">4</div><div class="step-content"><h4>Services, Ingress, Namespaces</h4><p>Expose and organize your workloads.</p></div></div>
-          <div class="step"><div class="step-num">5</div><div class="step-content"><h4>Config, Secrets, Volumes</h4><p>Manage app configuration and persistent data.</p></div></div>
-          <div class="step"><div class="step-num">6</div><div class="step-content"><h4>Autoscaling, Helm, Debugging</h4><p>Advanced operational skills for real workloads.</p></div></div>
+        <div class="cluster-panel" id="panel-terminal">
+          <div class="terminal">
+            <div class="term-bar">
+              <div class="term-dot" style="background:#ff5f57"></div><div class="term-dot" style="background:#ffbd2e"></div><div class="term-dot" style="background:#28ca41"></div>
+              <span class="term-title">kind-my-cluster</span>
+            </div>
+            <div class="term-body" id="term-output">
+<p class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">kubectl get nodes</span></p>
+<p class="term-line term-out">NAME                        STATUS   ROLES           AGE   VERSION</p>
+<p class="term-line term-success">my-cluster-control-plane    Ready    control-plane   5m    v1.29.0</p>
+<p class="term-line term-success">my-cluster-worker           Ready    worker          4m    v1.29.0</p>
+<p class="term-line term-success">my-cluster-worker2          Ready    worker          4m    v1.29.0</p>
+<p class="term-line">&nbsp;</p>
+<p class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">kubectl get pods -A</span></p>
+<p class="term-line term-out">NAMESPACE     NAME                    READY   STATUS    RESTARTS</p>
+<p class="term-line term-success">default       nginx-7d9f8b-x4p2k      1/1     Running   0</p>
+<p class="term-line term-success">default       api-5c6d9f-m3r1n        1/1     Running   0</p>
+<p class="term-line term-warn">default       db-pending-xyz          0/1     Pending   0</p>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="termCmd('get nodes')">get nodes</button>
+            <button class="btn btn-sm" onclick="termCmd('get pods')">get pods -A</button>
+            <button class="btn btn-sm" onclick="termCmd('cluster-info')">cluster-info</button>
+            <button class="btn btn-sm" onclick="termCmd('get events')">get events</button>
+          </div>
+        </div>
+        <div class="cluster-panel" id="panel-yaml">
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>kind-config.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <pre><code style="color:#e6edf3"><span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> Cluster
+<span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> kind.x-k8s.io/v1alpha4
+<span style="color:#ff7b72">nodes</span><span style="color:#79c0ff">:</span>
+  <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">role</span><span style="color:#79c0ff">:</span> control-plane
+    <span style="color:#ff7b72">kubeadmConfigPatches</span><span style="color:#79c0ff">:</span>
+    <span style="color:#79c0ff">-</span> <span style="color:#a5d6ff">|</span>
+      <span style="color:#a5d6ff">kind: InitConfiguration</span>
+      <span style="color:#a5d6ff">nodeRegistration:</span>
+      <span style="color:#a5d6ff">  kubeletExtraArgs:</span>
+      <span style="color:#a5d6ff">    node-labels: "ingress-ready=true"</span>
+    <span style="color:#ff7b72">extraPortMappings</span><span style="color:#79c0ff">:</span>
+    <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">containerPort</span><span style="color:#79c0ff">:</span> 80
+      <span style="color:#ff7b72">hostPort</span><span style="color:#79c0ff">:</span> 80
+      <span style="color:#ff7b72">protocol</span><span style="color:#79c0ff">:</span> TCP
+  <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">role</span><span style="color:#79c0ff">:</span> worker
+  <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">role</span><span style="color:#79c0ff">:</span> worker</code></pre>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- KIND SETUP -->
-    <div id="sec-kind-setup" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 1</span><span class="tag tag-green">Setup</span></div>
-        <h1>KIND Cluster Setup</h1>
-        <p>KIND (Kubernetes IN Docker) lets you run K8s nodes as Docker containers. Install 3 tools, write one config file, and you have a production-like multi-node cluster in under 5 minutes.</p>
+    <!-- Architecture Diagram -->
+    <div class="card">
+      <div class="card-title">🗺️ Kubernetes Architecture — Interactive</div>
+      <div class="diagram-box">
+        <svg width="100%" viewBox="0 0 680 380">
+          <defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <!-- Developer -->
+          <rect x="10" y="160" width="90" height="50" rx="8" fill="#818cf820" stroke="#818cf8" stroke-width="1"/>
+          <text x="55" y="178" text-anchor="middle" font-size="12" fill="#818cf8" font-weight="700">kubectl</text>
+          <text x="55" y="196" text-anchor="middle" font-size="10" fill="#818cf890">CLI</text>
+          <!-- Arrow to API -->
+          <line x1="100" y1="185" x2="155" y2="185" stroke="#818cf8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <text x="128" y="178" text-anchor="middle" font-size="10" fill="#818cf890">HTTPS</text>
+          <!-- Control Plane box -->
+          <rect x="155" y="30" width="220" height="310" rx="14" fill="#38bdf808" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="265" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#38bdf8">CONTROL PLANE</text>
+          <!-- API Server -->
+          <rect x="175" y="65" width="180" height="48" rx="8" fill="#1e40af30" stroke="#60a5fa" stroke-width="1"/>
+          <text x="265" y="85" text-anchor="middle" font-size="12" fill="#93c5fd" font-weight="700">API Server</text>
+          <text x="265" y="103" text-anchor="middle" font-size="10" fill="#60a5fa90">Gateway for all requests</text>
+          <!-- etcd -->
+          <rect x="175" y="125" width="80" height="44" rx="8" fill="#06402830" stroke="#34d399" stroke-width="1"/>
+          <text x="215" y="145" text-anchor="middle" font-size="12" fill="#6ee7b7" font-weight="700">etcd</text>
+          <text x="215" y="161" text-anchor="middle" font-size="10" fill="#34d39990">State store</text>
+          <!-- Scheduler -->
+          <rect x="275" y="125" width="80" height="44" rx="8" fill="#78350f30" stroke="#fbbf24" stroke-width="1"/>
+          <text x="315" y="145" text-anchor="middle" font-size="12" fill="#fde68a" font-weight="700">Scheduler</text>
+          <text x="315" y="161" text-anchor="middle" font-size="10" fill="#fbbf2490">Assigns pods</text>
+          <!-- Controller Manager -->
+          <rect x="175" y="185" width="180" height="44" rx="8" fill="#4c0d9530" stroke="#a78bfa" stroke-width="1"/>
+          <text x="265" y="205" text-anchor="middle" font-size="12" fill="#c4b5fd" font-weight="700">Controller Manager</text>
+          <text x="265" y="221" text-anchor="middle" font-size="10" fill="#a78bfa90">Reconciliation loops</text>
+          <!-- Cloud Controller -->
+          <rect x="175" y="245" width="180" height="44" rx="8" fill="#831b1230" stroke="#f87171" stroke-width="1"/>
+          <text x="265" y="265" text-anchor="middle" font-size="12" fill="#fca5a5" font-weight="700">Cloud Controller</text>
+          <text x="265" y="281" text-anchor="middle" font-size="10" fill="#f8717190">LB, storage, routes</text>
+          <!-- Worker nodes -->
+          <!-- Worker 1 -->
+          <rect x="420" y="30" width="120" height="155" rx="12" fill="#06402810" stroke="#34d399" stroke-width="1.2"/>
+          <text x="480" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#34d399">WORKER 1</text>
+          <rect x="432" y="62" width="96" height="34" rx="6" fill="#06402825" stroke="#34d39960" stroke-width="1"/>
+          <text x="480" y="75" text-anchor="middle" font-size="10" fill="#6ee7b7" font-weight="600">kubelet</text>
+          <text x="480" y="89" text-anchor="middle" font-size="9" fill="#34d39980">Node agent</text>
+          <rect x="432" y="104" width="96" height="34" rx="6" fill="#06402825" stroke="#34d39960" stroke-width="1"/>
+          <text x="480" y="117" text-anchor="middle" font-size="10" fill="#6ee7b7" font-weight="600">kube-proxy</text>
+          <text x="480" y="131" text-anchor="middle" font-size="9" fill="#34d39980">iptables / IPVS</text>
+          <rect x="432" y="144" width="96" height="28" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="480" y="162" text-anchor="middle" font-size="10" fill="#94a3b8">Pods 🐳🐳</text>
+          <!-- Worker 2 -->
+          <rect x="555" y="30" width="120" height="155" rx="12" fill="#06402810" stroke="#34d399" stroke-width="1.2"/>
+          <text x="615" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#34d399">WORKER 2</text>
+          <rect x="567" y="62" width="96" height="34" rx="6" fill="#06402825" stroke="#34d39960" stroke-width="1"/>
+          <text x="615" y="75" text-anchor="middle" font-size="10" fill="#6ee7b7" font-weight="600">kubelet</text>
+          <text x="615" y="89" text-anchor="middle" font-size="9" fill="#34d39980">Node agent</text>
+          <rect x="567" y="104" width="96" height="34" rx="6" fill="#06402825" stroke="#34d39960" stroke-width="1"/>
+          <text x="615" y="117" text-anchor="middle" font-size="10" fill="#6ee7b7" font-weight="600">kube-proxy</text>
+          <text x="615" y="131" text-anchor="middle" font-size="9" fill="#34d39980">iptables / IPVS</text>
+          <rect x="567" y="144" width="96" height="28" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="615" y="162" text-anchor="middle" font-size="10" fill="#94a3b8">Pods 🐳🐳</text>
+          <!-- Arrows CP to Workers -->
+          <line x1="376" y1="110" x2="418" y2="110" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+          <line x1="376" y1="110" x2="418" y2="100" stroke="#34d399" stroke-width="1"/>
+          <!-- etcd to API -->
+          <line x1="265" y1="113" x2="265" y2="125" stroke="#60a5fa" stroke-width="1" marker-end="url(#arr)"/>
+          <!-- API to scheduler/controller -->
+          <line x1="265" y1="113" x2="315" y2="125" stroke="#fbbf24" stroke-width="1" marker-end="url(#arr)"/>
+          <!-- Internet -->
+          <rect x="420" y="220" width="255" height="100" rx="12" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="547" y="248" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">kubectl / Users / CI</text>
+          <text x="547" y="268" text-anchor="middle" font-size="10" fill="#64748b">External access via</text>
+          <text x="547" y="286" text-anchor="middle" font-size="10" fill="#64748b">Services / Ingress</text>
+          <text x="547" y="304" text-anchor="middle" font-size="10" fill="#38bdf8">port-forward · NodePort · LoadBalancer</text>
+          <!-- Arrow external to API -->
+          <line x1="420" y1="260" x2="380" y2="205" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr)"/>
+        </svg>
       </div>
+    </div>
 
-      <div class="card">
-        <h3>Why KIND?</h3>
-        <p>Cloud clusters cost money. Minikube is single-node. KIND gives you a <strong>real multi-node cluster</strong> on your laptop — same behavior as production, free, and disposable. Perfect for practicing scheduling, node failures, and networking.</p>
+    <div class="donate-bar">
+      <div class="donate-text">
+        <h3>💜 This resource is free — help keep it alive!</h3>
+        <p>If this saved you hours of documentation reading, buy Jigar a coffee ☕</p>
       </div>
+      <div class="donate-btns">
+        <button class="btn-coffee" onclick="openCoffee()">☕ Ko-fi</button>
+        <button class="btn-donate" onclick="openDonate()">💜 Sponsor</button>
+      </div>
+    </div>
+  </div>
 
-      <div class="card">
-        <div class="card-title">📦 Step 1 — Install Docker</div>
-        <div class="code-block">
-          <div class="code-header"><span>bash – Linux (Ubuntu)</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash"># Install Docker Engine
-sudo apt-get update
-sudo apt-get install -y docker.io
-sudo systemctl enable --now docker
-sudo usermod -aG docker $USER   # no sudo needed after re-login
-docker --version                # Docker version 24.x.x</code></pre>
+  <!-- ======== KUBECTL BASICS ======== -->
+  <div id="sec-kubectl" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header">
+      <div class="topic-tags"><span class="tag tag-blue">Topic 2</span><span class="tag tag-purple">CLI Mastery</span></div>
+      <h1>kubectl — The Complete Guide</h1>
+      <p>kubectl is the single CLI that controls everything in Kubernetes. It converts your commands into REST API calls against the API Server. Know this tool deeply — it's 80% of your daily K8s work.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔥 Critical Commands You Must Know</div>
+      <div class="tbl-wrap">
+        <table class="cmd">
+          <tr><th>Command</th><th>What it Does</th><th>Example</th></tr>
+          <tr><td>kubectl cluster-info</td><td>Show API server + DNS URLs</td><td><code>kubectl cluster-info</code></td></tr>
+          <tr><td>kubectl get nodes</td><td>List nodes and status</td><td><code>kubectl get nodes -o wide</code></td></tr>
+          <tr><td>kubectl get pods -A</td><td>All pods across namespaces</td><td><code>kubectl get pods -A --watch</code></td></tr>
+          <tr><td>kubectl describe pod</td><td>Deep details + Events section</td><td><code>kubectl describe pod nginx-xyz</code></td></tr>
+          <tr><td>kubectl logs</td><td>Container stdout/stderr</td><td><code>kubectl logs nginx -f --tail=100</code></td></tr>
+          <tr><td>kubectl exec</td><td>Shell inside container</td><td><code>kubectl exec -it nginx -- bash</code></td></tr>
+          <tr><td>kubectl apply -f</td><td>Create or update from YAML</td><td><code>kubectl apply -f deployment.yaml</code></td></tr>
+          <tr><td>kubectl delete</td><td>Remove a resource</td><td><code>kubectl delete pod nginx --grace-period=0</code></td></tr>
+          <tr><td>kubectl port-forward</td><td>Local port → pod/service</td><td><code>kubectl port-forward svc/nginx 8080:80</code></td></tr>
+          <tr><td>kubectl get events</td><td>Cluster-wide event log</td><td><code>kubectl get events --sort-by='.lastTimestamp'</code></td></tr>
+          <tr><td>kubectl top nodes</td><td>CPU/memory usage per node</td><td><code>kubectl top nodes</code></td></tr>
+          <tr><td>kubectl top pods</td><td>CPU/memory usage per pod</td><td><code>kubectl top pods -A --sort-by=memory</code></td></tr>
+          <tr><td>kubectl diff</td><td>Preview changes before apply</td><td><code>kubectl diff -f deployment.yaml</code></td></tr>
+          <tr><td>kubectl replace</td><td>Force replace a resource</td><td><code>kubectl replace --force -f pod.yaml</code></td></tr>
+          <tr><td>kubectl patch</td><td>Partially update resource</td><td><code>kubectl patch deploy nginx -p '{"spec":{"replicas":5}}'</code></td></tr>
+          <tr><td>kubectl label</td><td>Add/remove labels</td><td><code>kubectl label pod nginx env=prod</code></td></tr>
+          <tr><td>kubectl annotate</td><td>Add annotations</td><td><code>kubectl annotate pod nginx description="web server"</code></td></tr>
+          <tr><td>kubectl taint</td><td>Taint a node (repel pods)</td><td><code>kubectl taint node worker1 key=value:NoSchedule</code></td></tr>
+          <tr><td>kubectl cordon</td><td>Stop new pods on node</td><td><code>kubectl cordon worker1</code></td></tr>
+          <tr><td>kubectl drain</td><td>Evict pods + cordon node</td><td><code>kubectl drain worker1 --ignore-daemonsets</code></td></tr>
+          <tr><td>kubectl uncordon</td><td>Re-enable scheduling on node</td><td><code>kubectl uncordon worker1</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 Context & Namespace Management</div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>bash — Context switching</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code style="color:#e6edf3"><span style="color:#8b949e"># List all contexts (clusters you're connected to)</span>
+kubectl config get-contexts
+kubectl config current-context
+
+<span style="color:#8b949e"># Switch to a different cluster/context</span>
+kubectl config use-context kind-my-cluster
+kubectl config use-context production-cluster
+
+<span style="color:#8b949e"># Set default namespace for current context</span>
+kubectl config set-context --current --namespace=dev
+
+<span style="color:#8b949e"># Quick alias (add to ~/.bashrc)</span>
+alias k=kubectl
+alias kgp='kubectl get pods'
+alias kgs='kubectl get svc'
+alias kgn='kubectl get nodes'
+alias kaf='kubectl apply -f'
+alias kdp='kubectl describe pod'
+
+<span style="color:#8b949e"># View full kubeconfig</span>
+kubectl config view
+kubectl config view --minify   <span style="color:#8b949e"># current context only</span></code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🧪 Dry-Run & Template Generation (Save Hours!)</div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>bash — Dry-run magic</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code style="color:#e6edf3"><span style="color:#8b949e"># ✨ Generate YAML automatically — never write from scratch!</span>
+kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml
+kubectl create deployment myapp --image=myapp:v1 --replicas=3 --dry-run=client -o yaml > deploy.yaml
+kubectl create service clusterip mysvc --tcp=80:8080 --dry-run=client -o yaml > svc.yaml
+kubectl create configmap app-config --from-literal=ENV=prod --dry-run=client -o yaml > cm.yaml
+kubectl create secret generic db-secret --from-literal=pass=abc123 --dry-run=client -o yaml > secret.yaml
+
+<span style="color:#8b949e"># Dry-run against server (validates against real API)</span>
+kubectl apply -f deployment.yaml --dry-run=server
+
+<span style="color:#8b949e"># Output formats</span>
+kubectl get pod nginx -o yaml      <span style="color:#8b949e"># Full YAML</span>
+kubectl get pod nginx -o json      <span style="color:#8b949e"># Full JSON</span>
+kubectl get pod nginx -o wide      <span style="color:#8b949e"># Extra columns</span>
+kubectl get pod nginx -o name      <span style="color:#8b949e"># Just the name</span>
+kubectl get pods -o jsonpath='{.items[*].metadata.name}'   <span style="color:#8b949e"># Custom field</span>
+kubectl get nodes -o custom-columns='NAME:.metadata.name,IP:.status.addresses[0].address'</code></pre>
+      </div>
+    </div>
+
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>G-D-L-E-E</strong> = <strong>G</strong>et → <strong>D</strong>escribe → <strong>L</strong>ogs → <strong>E</strong>xec → <strong>E</strong>vents. This is your 5-step debug loop — memorize it and you'll solve 95% of K8s issues in minutes!</p></div>
+    <div class="alert alert-yellow"><span class="alert-icon">💡</span><div><strong>Pro tip:</strong> Always use <code>--dry-run=client -o yaml</code> to generate YAML templates. Never write K8s YAML from scratch — it wastes time and introduces errors.</div></div>
+  </div>
+
+  <!-- ======== PODS ======== -->
+  <div id="sec-pods" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header">
+      <div class="topic-tags"><span class="tag tag-blue">Topic 3</span><span class="tag tag-green">Workload</span></div>
+      <h1>Pods — The Atomic Unit</h1>
+      <p>A Pod is the smallest deployable unit. It wraps one or more containers that share an IP address, network namespace, and storage volumes. Every container in K8s lives inside a Pod.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Interactive Pod Lifecycle</div>
+      <div class="diagram-box" id="pod-lifecycle-diagram">
+        <svg width="100%" viewBox="0 0 680 220">
+          <defs><marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <!-- States -->
+          <g onclick="showPodState('pending')" style="cursor:pointer">
+            <rect x="20" y="85" width="100" height="44" rx="8" fill="#78350f30" stroke="#fbbf24" stroke-width="1.5" id="state-pending"/>
+            <text x="70" y="104" text-anchor="middle" font-size="12" fill="#fde68a" font-weight="700">Pending</text>
+            <text x="70" y="120" text-anchor="middle" font-size="10" fill="#fbbf2490">Scheduling…</text>
+          </g>
+          <line x1="120" y1="107" x2="158" y2="107" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="139" y="100" text-anchor="middle" font-size="9" fill="#4ade8080">Node found</text>
+          <g onclick="showPodState('running')" style="cursor:pointer">
+            <rect x="158" y="85" width="100" height="44" rx="8" fill="#06402830" stroke="#34d399" stroke-width="1.5" id="state-running"/>
+            <text x="208" y="104" text-anchor="middle" font-size="12" fill="#6ee7b7" font-weight="700">Running</text>
+            <text x="208" y="120" text-anchor="middle" font-size="10" fill="#34d39990">Healthy ✓</text>
+          </g>
+          <!-- Running → Succeeded -->
+          <line x1="258" y1="95" x2="315" y2="80" stroke="#818cf8" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="287" y="83" text-anchor="middle" font-size="9" fill="#818cf890">exit 0</text>
+          <g onclick="showPodState('succeeded')" style="cursor:pointer">
+            <rect x="315" y="60" width="100" height="44" rx="8" fill="#1e1b4b30" stroke="#818cf8" stroke-width="1.5"/>
+            <text x="365" y="79" text-anchor="middle" font-size="12" fill="#c4b5fd" font-weight="700">Succeeded</text>
+            <text x="365" y="95" text-anchor="middle" font-size="10" fill="#818cf890">Job done ✓</text>
+          </g>
+          <!-- Running → Failed -->
+          <line x1="258" y1="118" x2="315" y2="140" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="287" y="140" text-anchor="middle" font-size="9" fill="#f8717190">exit ≠ 0</text>
+          <g onclick="showPodState('failed')" style="cursor:pointer">
+            <rect x="315" y="120" width="100" height="44" rx="8" fill="#7f1d1d30" stroke="#f87171" stroke-width="1.5"/>
+            <text x="365" y="139" text-anchor="middle" font-size="12" fill="#fca5a5" font-weight="700">Failed</text>
+            <text x="365" y="155" text-anchor="middle" font-size="10" fill="#f8717190">CrashLoop…</text>
+          </g>
+          <!-- Failed → Pending (restart) -->
+          <path d="M365 164 Q365 195 208 195 Q70 195 70 129" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4 3" fill="none" marker-end="url(#arr2)"/>
+          <text x="220" y="210" text-anchor="middle" font-size="9" fill="#fbbf2490">Restart policy: Always</text>
+          <!-- Unknown -->
+          <g onclick="showPodState('unknown')" style="cursor:pointer">
+            <rect x="460" y="85" width="100" height="44" rx="8" fill="#37415130" stroke="#9ca3af" stroke-width="1.5"/>
+            <text x="510" y="104" text-anchor="middle" font-size="12" fill="#d1d5db" font-weight="700">Unknown</text>
+            <text x="510" y="120" text-anchor="middle" font-size="10" fill="#9ca3af90">Node lost</text>
+          </g>
+          <line x1="258" y1="107" x2="458" y2="107" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr2)"/>
+          <!-- Tooltip -->
+          <rect x="580" y="75" width="90" height="70" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1" id="pod-tip-box"/>
+          <text id="pod-tip" x="625" y="96" text-anchor="middle" font-size="10" fill="#94a3b8">Click a state</text>
+          <text id="pod-tip2" x="625" y="112" text-anchor="middle" font-size="10" fill="#64748b">to learn more</text>
+          <text id="pod-tip3" x="625" y="128" text-anchor="middle" font-size="10" fill="#64748b"></text>
+        </svg>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 All Pod Commands</div>
+      <div class="tbl-wrap">
+        <table class="cmd">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl run</td><td>Create a pod quickly</td><td><code>kubectl run nginx --image=nginx:1.25 --port=80</code></td></tr>
+          <tr><td>kubectl run (dry-run)</td><td>Generate pod YAML</td><td><code>kubectl run nginx --image=nginx --dry-run=client -o yaml</code></td></tr>
+          <tr><td>kubectl get pods</td><td>List pods with status</td><td><code>kubectl get pods -o wide --watch</code></td></tr>
+          <tr><td>kubectl describe pod</td><td>Events, conditions, volumes</td><td><code>kubectl describe pod nginx</code></td></tr>
+          <tr><td>kubectl logs</td><td>Container output</td><td><code>kubectl logs nginx -c mycontainer --since=1h</code></td></tr>
+          <tr><td>kubectl logs --previous</td><td>Last crashed container logs</td><td><code>kubectl logs nginx --previous</code></td></tr>
+          <tr><td>kubectl exec</td><td>Run cmd in container</td><td><code>kubectl exec -it nginx -- /bin/bash</code></td></tr>
+          <tr><td>kubectl cp</td><td>Copy files to/from pod</td><td><code>kubectl cp nginx:/etc/nginx/nginx.conf ./nginx.conf</code></td></tr>
+          <tr><td>kubectl port-forward</td><td>Local access to pod</td><td><code>kubectl port-forward pod/nginx 8080:80</code></td></tr>
+          <tr><td>kubectl delete pod</td><td>Remove pod</td><td><code>kubectl delete pod nginx --grace-period=0 --force</code></td></tr>
+          <tr><td>kubectl get pod -o yaml</td><td>Full pod spec</td><td><code>kubectl get pod nginx -o yaml > pod-backup.yaml</code></td></tr>
+          <tr><td>kubectl wait</td><td>Block until condition</td><td><code>kubectl wait pod/nginx --for=condition=Ready --timeout=60s</code></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>nginx-pod.yaml — Production-ready</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3"><span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> v1
+<span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> Pod
+<span style="color:#ff7b72">metadata</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> nginx
+  <span style="color:#ff7b72">labels</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">app</span><span style="color:#79c0ff">:</span> nginx
+    <span style="color:#ff7b72">version</span><span style="color:#79c0ff">:</span> "1.25"
+<span style="color:#ff7b72">spec</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">containers</span><span style="color:#79c0ff">:</span>
+  <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> nginx
+    <span style="color:#ff7b72">image</span><span style="color:#79c0ff">:</span> nginx:1.25
+    <span style="color:#ff7b72">ports</span><span style="color:#79c0ff">:</span>
+    <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">containerPort</span><span style="color:#79c0ff">:</span> 80
+    <span style="color:#ff7b72">resources</span><span style="color:#79c0ff">:</span>          <span style="color:#8b949e"># ← ALWAYS set this!</span>
+      <span style="color:#ff7b72">requests</span><span style="color:#79c0ff">:</span>
+        <span style="color:#ff7b72">cpu</span><span style="color:#79c0ff">:</span> "100m"
+        <span style="color:#ff7b72">memory</span><span style="color:#79c0ff">:</span> "128Mi"
+      <span style="color:#ff7b72">limits</span><span style="color:#79c0ff">:</span>
+        <span style="color:#ff7b72">cpu</span><span style="color:#79c0ff">:</span> "500m"
+        <span style="color:#ff7b72">memory</span><span style="color:#79c0ff">:</span> "256Mi"
+    <span style="color:#ff7b72">livenessProbe</span><span style="color:#79c0ff">:</span>     <span style="color:#8b949e"># Is it alive?</span>
+      <span style="color:#ff7b72">httpGet</span><span style="color:#79c0ff">:</span>
+        <span style="color:#ff7b72">path</span><span style="color:#79c0ff">:</span> /healthz
+        <span style="color:#ff7b72">port</span><span style="color:#79c0ff">:</span> 80
+      <span style="color:#ff7b72">initialDelaySeconds</span><span style="color:#79c0ff">:</span> 10
+      <span style="color:#ff7b72">periodSeconds</span><span style="color:#79c0ff">:</span> 5
+    <span style="color:#ff7b72">readinessProbe</span><span style="color:#79c0ff">:</span>    <span style="color:#8b949e"># Ready to receive traffic?</span>
+      <span style="color:#ff7b72">httpGet</span><span style="color:#79c0ff">:</span>
+        <span style="color:#ff7b72">path</span><span style="color:#79c0ff">:</span> /ready
+        <span style="color:#ff7b72">port</span><span style="color:#79c0ff">:</span> 80
+      <span style="color:#ff7b72">initialDelaySeconds</span><span style="color:#79c0ff">:</span> 5
+      <span style="color:#ff7b72">periodSeconds</span><span style="color:#79c0ff">:</span> 3</code></pre>
+    </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>Pod = Hotel Room.</strong> One IP (room number), multiple guests (containers) sharing bathroom (network + volumes). Hotel staff (kubelet) checks you're alive every few seconds (liveness probe). Concierge only sends guests when room is ready (readiness probe).</p></div>
+    <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Never</strong> run pods without <code>resources.requests</code> and <code>resources.limits</code> — your pod can starve other pods of CPU/memory and bring down the node!</div></div>
+  </div>
+
+  <!-- ======== DEPLOYMENTS ======== -->
+  <div id="sec-deploy" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header">
+      <div class="topic-tags"><span class="tag tag-blue">Topic 5</span><span class="tag tag-green">Workload</span></div>
+      <h1>Deployments — Production Workloads</h1>
+      <p>Deployments are the standard way to run stateless apps. They manage ReplicaSets to give you rolling updates, instant rollbacks, and self-healing — all declarative.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔄 Interactive Rolling Update Simulator</div>
+      <div class="diagram-box">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Strategy</div>
+            <select id="deploy-strategy" onchange="updateDeployDiagram()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px">
+              <option value="rolling">RollingUpdate</option>
+              <option value="recreate">Recreate</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Replicas: <span id="rep-val">3</span></div>
+            <input type="range" min="1" max="6" value="3" id="rep-slider" oninput="document.getElementById('rep-val').textContent=this.value;updateDeployDiagram()" style="width:120px">
+          </div>
+          <button class="btn btn-sm" onclick="animateRollout()">▶ Simulate Rollout</button>
         </div>
+        <div id="deploy-diagram" style="min-height:120px"></div>
       </div>
+    </div>
 
-      <div class="card">
-        <div class="card-title">🔧 Step 2 — Install kubectl</div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    <div class="card">
+      <div class="card-title">📋 All Deployment Commands</div>
+      <div class="tbl-wrap">
+        <table class="cmd">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl create deploy</td><td>Create deployment fast</td><td><code>kubectl create deploy nginx --image=nginx --replicas=3</code></td></tr>
+          <tr><td>kubectl create deploy (dry)</td><td>Generate YAML template</td><td><code>kubectl create deploy nginx --image=nginx --dry-run=client -o yaml</code></td></tr>
+          <tr><td>kubectl get deploy</td><td>List deployments + ready count</td><td><code>kubectl get deploy -o wide</code></td></tr>
+          <tr><td>kubectl describe deploy</td><td>Events + strategy details</td><td><code>kubectl describe deploy nginx</code></td></tr>
+          <tr><td>kubectl scale</td><td>Change replica count</td><td><code>kubectl scale deploy nginx --replicas=5</code></td></tr>
+          <tr><td>kubectl set image</td><td>Trigger rolling update</td><td><code>kubectl set image deploy/nginx nginx=nginx:1.26</code></td></tr>
+          <tr><td>kubectl rollout status</td><td>Watch rollout live</td><td><code>kubectl rollout status deploy/nginx</code></td></tr>
+          <tr><td>kubectl rollout history</td><td>View all revisions</td><td><code>kubectl rollout history deploy/nginx</code></td></tr>
+          <tr><td>kubectl rollout undo</td><td>Roll back to previous</td><td><code>kubectl rollout undo deploy/nginx</code></td></tr>
+          <tr><td>kubectl rollout undo --to-revision</td><td>Roll back to specific rev</td><td><code>kubectl rollout undo deploy/nginx --to-revision=2</code></td></tr>
+          <tr><td>kubectl rollout pause</td><td>Pause mid-rollout</td><td><code>kubectl rollout pause deploy/nginx</code></td></tr>
+          <tr><td>kubectl rollout resume</td><td>Resume paused rollout</td><td><code>kubectl rollout resume deploy/nginx</code></td></tr>
+          <tr><td>kubectl rollout restart</td><td>Force restart all pods</td><td><code>kubectl rollout restart deploy/nginx</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>deployment.yaml — Full production spec</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3"><span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> apps/v1
+<span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> Deployment
+<span style="color:#ff7b72">metadata</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> nginx-deploy
+  <span style="color:#ff7b72">annotations</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">kubernetes.io/change-cause</span><span style="color:#79c0ff">:</span> "Updated to nginx 1.25"   <span style="color:#8b949e"># shows in rollout history</span>
+<span style="color:#ff7b72">spec</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">replicas</span><span style="color:#79c0ff">:</span> 3
+  <span style="color:#ff7b72">revisionHistoryLimit</span><span style="color:#79c0ff">:</span> 10    <span style="color:#8b949e"># keep 10 old ReplicaSets for rollback</span>
+  <span style="color:#ff7b72">selector</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">matchLabels</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">app</span><span style="color:#79c0ff">:</span> nginx
+  <span style="color:#ff7b72">strategy</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">type</span><span style="color:#79c0ff">:</span> RollingUpdate
+    <span style="color:#ff7b72">rollingUpdate</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">maxSurge</span><span style="color:#79c0ff">:</span> 1          <span style="color:#8b949e"># +1 extra pod during update</span>
+      <span style="color:#ff7b72">maxUnavailable</span><span style="color:#79c0ff">:</span> 0    <span style="color:#8b949e"># 0 pods down during update = zero downtime</span>
+  <span style="color:#ff7b72">template</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">metadata</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">labels</span><span style="color:#79c0ff">:</span>
+        <span style="color:#ff7b72">app</span><span style="color:#79c0ff">:</span> nginx
+    <span style="color:#ff7b72">spec</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">containers</span><span style="color:#79c0ff">:</span>
+      <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> nginx
+        <span style="color:#ff7b72">image</span><span style="color:#79c0ff">:</span> nginx:1.25
+        <span style="color:#ff7b72">ports</span><span style="color:#79c0ff">:</span>
+        <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">containerPort</span><span style="color:#79c0ff">:</span> 80</code></pre>
+    </div>
+
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>Deployment = Git for Pods.</strong> <code>set image</code> = commit, <code>rollout history</code> = git log, <code>rollout undo</code> = git revert. You always have a safety net!</p></div>
+  </div>
+
+  <!-- ======== SERVICES ======== -->
+  <div id="sec-svc" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header">
+      <div class="topic-tags"><span class="tag tag-blue">Topic 6</span><span class="tag tag-purple">Networking</span></div>
+      <h1>Services — Stable Networking</h1>
+      <p>Pods get new IPs every restart. A Service gives a stable virtual IP + DNS name that load-balances across matching pods. Without Services, nothing could reliably talk to your pods.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🌐 Interactive Service Types</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="showSvcType('clusterip')">ClusterIP</button>
+        <button class="btn btn-sm" onclick="showSvcType('nodeport')">NodePort</button>
+        <button class="btn btn-sm" onclick="showSvcType('lb')">LoadBalancer</button>
+      </div>
+      <div class="diagram-box" id="svc-diagram">
+        <svg width="100%" viewBox="0 0 680 200" id="svc-svg">
+          <defs><marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <!-- ClusterIP default -->
+          <rect x="20" y="80" width="100" height="44" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="70" y="98" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600">Internal Pod</text>
+          <text x="70" y="114" text-anchor="middle" font-size="10" fill="#64748b">calls nginx:80</text>
+          <line x1="120" y1="102" x2="178" y2="102" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <rect x="178" y="75" width="120" height="54" rx="8" fill="#0284c730" stroke="#38bdf8" stroke-width="2"/>
+          <text x="238" y="96" text-anchor="middle" font-size="12" fill="#7dd3fc" font-weight="700">ClusterIP</text>
+          <text x="238" y="112" text-anchor="middle" font-size="10" fill="#38bdf890">10.96.x.x : 80</text>
+          <text x="238" y="124" text-anchor="middle" font-size="9" fill="#38bdf870">Internal only</text>
+          <line x1="298" y1="95" x2="348" y2="75" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <line x1="298" y1="102" x2="348" y2="102" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <line x1="298" y1="109" x2="348" y2="129" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <rect x="348" y="60" width="80" height="30" rx="6" fill="#06402820" stroke="#34d39960" stroke-width="1"/>
+          <text x="388" y="79" text-anchor="middle" font-size="11" fill="#6ee7b7">Pod 1</text>
+          <rect x="348" y="97" width="80" height="30" rx="6" fill="#06402820" stroke="#34d39960" stroke-width="1"/>
+          <text x="388" y="116" text-anchor="middle" font-size="11" fill="#6ee7b7">Pod 2</text>
+          <rect x="348" y="134" width="80" height="30" rx="6" fill="#06402820" stroke="#34d39960" stroke-width="1"/>
+          <text x="388" y="153" text-anchor="middle" font-size="11" fill="#6ee7b7">Pod 3</text>
+          <text x="340" y="20" text-anchor="middle" font-size="13" fill="#38bdf8" font-weight="700" id="svc-label">ClusterIP — Internal only. DNS: nginx.default.svc.cluster.local</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Service Commands</div>
+      <div class="tbl-wrap">
+        <table class="cmd">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl get svc</td><td>List all services</td><td><code>kubectl get svc -o wide</code></td></tr>
+          <tr><td>kubectl expose</td><td>Create service from resource</td><td><code>kubectl expose deploy nginx --port=80 --type=NodePort</code></td></tr>
+          <tr><td>kubectl describe svc</td><td>Endpoints + selectors</td><td><code>kubectl describe svc nginx</code></td></tr>
+          <tr><td>kubectl get endpoints</td><td>Pod IPs behind service</td><td><code>kubectl get endpoints nginx</code></td></tr>
+          <tr><td>kubectl create svc (dry)</td><td>Generate service YAML</td><td><code>kubectl create svc clusterip nginx --tcp=80:8080 --dry-run=client -o yaml</code></td></tr>
+          <tr><td>kubectl delete svc</td><td>Remove service</td><td><code>kubectl delete svc nginx</code></td></tr>
+          <tr><td>kubectl port-forward svc</td><td>Local access to service</td><td><code>kubectl port-forward svc/nginx 8080:80</code></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>C-N-L = Club, Neighborhood, Lobby.</strong> ClusterIP = Club (members/pods only). NodePort = your Neighborhood (same network can reach). LoadBalancer = Hotel Lobby (public can walk in). Pick based on who needs access.</p></div>
+  </div>
+
+  <!-- ======== DEBUGGING ======== -->
+  <div id="sec-debug" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header">
+      <div class="topic-tags"><span class="tag tag-blue">Topic 14</span><span class="tag tag-red">Operations</span></div>
+      <h1>Debugging Kubernetes — Full Toolkit</h1>
+      <p>When things break, K8s always tells you what's wrong — you just need to ask the right questions in the right order. Use the decision tree below and you'll solve 99% of issues.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔍 Interactive Debug Flowchart</div>
+      <div class="diagram-box">
+        <svg width="100%" viewBox="0 0 680 420">
+          <defs><marker id="arr4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <!-- Start -->
+          <rect x="255" y="10" width="170" height="40" rx="20" fill="#7f1d1d40" stroke="#f87171" stroke-width="1.5"/>
+          <text x="340" y="35" text-anchor="middle" font-size="13" fill="#fca5a5" font-weight="700">App Not Working</text>
+          <line x1="340" y1="50" x2="340" y2="80" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <!-- kubectl get pods -->
+          <rect x="220" y="80" width="240" height="40" rx="8" fill="#1e3a5f40" stroke="#38bdf8" stroke-width="1.5"/>
+          <text x="340" y="97" text-anchor="middle" font-size="11" fill="#7dd3fc" font-weight="700">kubectl get pods</text>
+          <text x="340" y="113" text-anchor="middle" font-size="10" fill="#38bdf890">What's the STATUS?</text>
+          <!-- Branches -->
+          <line x1="220" y1="100" x2="100" y2="175" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <text x="140" y="148" text-anchor="middle" font-size="10" fill="#fbbf24">Pending</text>
+          <line x1="300" y1="120" x2="230" y2="175" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <text x="248" y="162" text-anchor="middle" font-size="10" fill="#f87171">CrashLoop</text>
+          <line x1="380" y1="120" x2="450" y2="175" stroke="#818cf8" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <text x="440" y="162" text-anchor="middle" font-size="10" fill="#818cf8">ImagePull</text>
+          <line x1="460" y1="100" x2="580" y2="175" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <text x="548" y="148" text-anchor="middle" font-size="10" fill="#9ca3af">Running</text>
+          <!-- Pending box -->
+          <rect x="20" y="175" width="160" height="54" rx="8" fill="#78350f30" stroke="#fbbf24" stroke-width="1"/>
+          <text x="100" y="195" text-anchor="middle" font-size="11" fill="#fde68a" font-weight="700">Pending</text>
+          <text x="100" y="211" text-anchor="middle" font-size="9" fill="#fbbf2490">No resources?</text>
+          <text x="100" y="225" text-anchor="middle" font-size="9" fill="#fbbf2490">Node selector mismatch?</text>
+          <!-- CrashLoop box -->
+          <rect x="160" y="175" width="155" height="54" rx="8" fill="#7f1d1d30" stroke="#f87171" stroke-width="1"/>
+          <text x="237" y="195" text-anchor="middle" font-size="11" fill="#fca5a5" font-weight="700">CrashLoopBackOff</text>
+          <text x="237" y="211" text-anchor="middle" font-size="9" fill="#f8717190">kubectl logs pod</text>
+          <text x="237" y="225" text-anchor="middle" font-size="9" fill="#f8717190">kubectl logs --previous</text>
+          <!-- ImagePull box -->
+          <rect x="365" y="175" width="155" height="54" rx="8" fill="#1e1b4b30" stroke="#818cf8" stroke-width="1"/>
+          <text x="442" y="195" text-anchor="middle" font-size="11" fill="#c4b5fd" font-weight="700">ImagePullBackOff</text>
+          <text x="442" y="211" text-anchor="middle" font-size="9" fill="#818cf890">Wrong image name?</text>
+          <text x="442" y="225" text-anchor="middle" font-size="9" fill="#818cf890">Missing imagePullSecret?</text>
+          <!-- Running but broken -->
+          <rect x="520" y="175" width="150" height="54" rx="8" fill="#06402830" stroke="#34d399" stroke-width="1"/>
+          <text x="595" y="195" text-anchor="middle" font-size="11" fill="#6ee7b7" font-weight="700">Running (still broken)</text>
+          <text x="595" y="211" text-anchor="middle" font-size="9" fill="#34d39990">Check service selector</text>
+          <text x="595" y="225" text-anchor="middle" font-size="9" fill="#34d39990">kubectl get endpoints</text>
+          <!-- Fix arrows down -->
+          <line x1="100" y1="229" x2="100" y2="285" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr4)"/>
+          <line x1="237" y1="229" x2="237" y2="285" stroke="#f87171" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr4)"/>
+          <line x1="442" y1="229" x2="442" y2="285" stroke="#818cf8" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr4)"/>
+          <line x1="595" y1="229" x2="595" y2="285" stroke="#34d399" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr4)"/>
+          <!-- Fix boxes -->
+          <rect x="20" y="285" width="160" height="44" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="100" y="304" text-anchor="middle" font-size="10" fill="#94a3b8">Add resource quotas</text>
+          <text x="100" y="320" text-anchor="middle" font-size="10" fill="#64748b">Fix nodeSelector</text>
+          <rect x="160" y="285" width="155" height="44" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="237" y="304" text-anchor="middle" font-size="10" fill="#94a3b8">Fix app code/config</text>
+          <text x="237" y="320" text-anchor="middle" font-size="10" fill="#64748b">Check env vars</text>
+          <rect x="365" y="285" width="155" height="44" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="442" y="304" text-anchor="middle" font-size="10" fill="#94a3b8">Fix image name/tag</text>
+          <text x="442" y="320" text-anchor="middle" font-size="10" fill="#64748b">Add registry secret</text>
+          <rect x="520" y="285" width="150" height="44" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+          <text x="595" y="304" text-anchor="middle" font-size="10" fill="#94a3b8">Fix label selectors</text>
+          <text x="595" y="320" text-anchor="middle" font-size="10" fill="#64748b">Check NetworkPolicy</text>
+          <!-- Success -->
+          <line x1="340" y1="350" x2="340" y2="390" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <rect x="240" y="390" width="200" height="24" rx="12" fill="#06402840" stroke="#34d399" stroke-width="1.5"/>
+          <text x="340" y="407" text-anchor="middle" font-size="12" fill="#34d399" font-weight="700">✓ App is Healthy!</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Complete Debugging Commands</div>
+      <div class="tbl-wrap">
+        <table class="cmd">
+          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+          <tr><td>kubectl describe pod</td><td>Events + conditions (most useful!)</td><td><code>kubectl describe pod crashpod | tail -30</code></td></tr>
+          <tr><td>kubectl logs --previous</td><td>Logs from last crashed instance</td><td><code>kubectl logs nginx --previous</code></td></tr>
+          <tr><td>kubectl get events</td><td>Timeline of all events</td><td><code>kubectl get events --sort-by=.lastTimestamp -A</code></td></tr>
+          <tr><td>kubectl debug</td><td>Inject ephemeral debug container</td><td><code>kubectl debug -it nginx --image=busybox --target=nginx</code></td></tr>
+          <tr><td>kubectl exec</td><td>Shell into running container</td><td><code>kubectl exec -it pod -- curl http://svc</code></td></tr>
+          <tr><td>kubectl run netshoot</td><td>Debug networking</td><td><code>kubectl run net --image=nicolaka/netshoot -it --rm</code></td></tr>
+          <tr><td>kubectl get endpoints</td><td>Pod IPs behind a service</td><td><code>kubectl get ep svc-name</code></td></tr>
+          <tr><td>kubectl top pods</td><td>CPU/memory per pod</td><td><code>kubectl top pods --sort-by=memory</code></td></tr>
+          <tr><td>kubectl top nodes</td><td>CPU/memory per node</td><td><code>kubectl top nodes</code></td></tr>
+          <tr><td>kubectl auth can-i</td><td>Check RBAC permissions</td><td><code>kubectl auth can-i create pods</code></td></tr>
+          <tr><td>kubectl get componentstatus</td><td>Control plane health</td><td><code>kubectl get cs</code></td></tr>
+          <tr><td>kubectl api-resources</td><td>All supported resource types</td><td><code>kubectl api-resources | grep apps</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>bash — Complete debug workflow</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3"><span style="color:#8b949e"># Step 1: What's broken?</span>
+kubectl get pods -A | grep -Ev 'Running|Completed'
+
+<span style="color:#8b949e"># Step 2: WHY is it broken? (Events section is gold!)</span>
+kubectl describe pod &lt;pod-name&gt;
+
+<span style="color:#8b949e"># Step 3: What did the app say?</span>
+kubectl logs &lt;pod-name&gt; --previous 2>&1 | tail -50
+
+<span style="color:#8b949e"># Step 4: Can I get inside?</span>
+kubectl exec -it &lt;pod-name&gt; -- /bin/sh
+
+<span style="color:#8b949e"># Step 5: Is DNS working?</span>
+kubectl run dns-test --image=busybox:1.28 --rm -it --restart=Never -- nslookup kubernetes
+
+<span style="color:#8b949e"># Step 6: Is service routing working?</span>
+kubectl get endpoints &lt;service-name&gt;    <span style="color:#8b949e"># Should NOT be empty!</span>
+kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- curl http://&lt;svc&gt;:80
+
+<span style="color:#8b949e"># Step 7: Resource pressure?</span>
+kubectl top nodes
+kubectl describe node worker1 | grep -A5 "Allocated resources"
+
+<span style="color:#8b949e"># Nuclear option: wipe and redeploy</span>
+kubectl rollout restart deployment/&lt;name&gt;</code></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🚨 Error → Root Cause → Fix</div>
+      <div class="tbl-wrap">
+        <table class="cmd">
+          <tr><th>Error</th><th>Root Cause</th><th>Fix Command</th></tr>
+          <tr><td>CrashLoopBackOff</td><td>App crashes immediately on start</td><td><code>kubectl logs --previous</code></td></tr>
+          <tr><td>ImagePullBackOff</td><td>Wrong image name or no registry auth</td><td>Fix image tag, add imagePullSecret</td></tr>
+          <tr><td>OOMKilled</td><td>Container exceeded memory limit</td><td>Increase <code>resources.limits.memory</code></td></tr>
+          <tr><td>Pending (no nodes)</td><td>No schedulable nodes / resource shortage</td><td><code>kubectl describe pod → Events</code></td></tr>
+          <tr><td>CreateContainerError</td><td>Volume/secret mount failed</td><td><code>kubectl describe pod → check volume events</code></td></tr>
+          <tr><td>Endpoints: none</td><td>Service selector doesn't match pod labels</td><td>Align <code>service.selector</code> with <code>pod.labels</code></td></tr>
+          <tr><td>ErrImageNeverPull</td><td>Image not present, policy=Never</td><td><code>kind load docker-image myapp:v1</code></td></tr>
+          <tr><td>Evicted</td><td>Node ran out of disk/memory</td><td><code>kubectl describe node</code>, free up space</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>G-D-L-E-E-T</strong> = <strong>G</strong>et → <strong>D</strong>escribe → <strong>L</strong>ogs → <strong>E</strong>xec → <strong>E</strong>vents → <strong>T</strong>op. Six steps. The answer is always in one of these six commands. Tattoo it on your hand.</p></div>
+  </div>
+
+  <!-- ======== QUIZ ======== -->
+  <div id="sec-quiz" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header">
+      <div class="topic-tags"><span class="tag tag-purple">Practice</span><span class="tag tag-green">Self-Test</span></div>
+      <h1>Quiz & Practice</h1>
+      <p>Test your Kubernetes knowledge. Pass this quiz and you're ready for the CKA exam — and ready to tackle any real-world K8s problem.</p>
+    </div>
+
+    <div class="donate-bar" style="margin-bottom:20px">
+      <div class="donate-text">
+        <h3>💜 Did this quiz help you pass your CKA?</h3>
+        <p>A small coffee keeps this site free and updated 🙏</p>
+      </div>
+      <div class="donate-btns">
+        <button class="btn-coffee" onclick="openCoffee()">☕ Ko-fi</button>
+      </div>
+    </div>
+
+    <div id="quiz-container"></div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+      <button class="btn" onclick="resetQuiz()">↺ Reset Quiz</button>
+      <div id="quiz-score" style="font-size:14px;color:var(--text2)"></div>
+    </div>
+  </div>
+
+  <!-- Stubs for remaining sections -->
+  <div id="sec-kind" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 1</span><span class="tag tag-green">Setup</span></div><h1>KIND Cluster Setup</h1><p>Install Docker, kubectl, KIND — and spin up a multi-node cluster locally in under 5 minutes.</p></div>
+    <div class="card"><div class="card-title">📦 Install Docker + kubectl + KIND</div>
+      <div class="code-block"><div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code style="color:#e6edf3"><span style="color:#8b949e"># 1. Install Docker</span>
+sudo apt-get update && sudo apt-get install -y docker.io
+sudo systemctl enable --now docker && sudo usermod -aG docker $USER
+
+<span style="color:#8b949e"># 2. Install kubectl</span>
+curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-kubectl version --client   # Client Version: v1.29.x</code></pre>
-        </div>
-      </div>
 
-      <div class="card">
-        <div class="card-title">⎈ Step 3 — Install KIND</div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+<span style="color:#8b949e"># 3. Install KIND</span>
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
 chmod +x kind && sudo mv kind /usr/local/bin/
-kind --version   # kind v0.22.0</code></pre>
-        </div>
-      </div>
 
-      <div class="card">
-        <div class="card-title">🏗️ Step 4 — Create Multi-Node Cluster</div>
-        <div class="code-block">
-          <div class="code-header"><span>kind-config.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml"># kind-config.yaml — 1 control-plane + 2 workers
+<span style="color:#8b949e"># 4. Create multi-node cluster</span>
+cat &lt;&lt;EOF > kind-config.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
   - role: worker
-  - role: worker</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kind create cluster --name my-cluster --config kind-config.yaml
-kubectl cluster-info --context kind-my-cluster
-kubectl get nodes   # Should show 3 nodes (Ready)</code></pre>
-        </div>
+  - role: worker
+EOF
+kind create cluster --name my-cluster --config kind-config.yaml
+kubectl get nodes</code></pre>
       </div>
-
-      <div class="card">
-        <div class="card-title">📋 KIND Commands Reference</div>
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>kind create cluster</td><td>Create a new cluster</td><td><code>kind create cluster --name dev</code></td></tr>
-          <tr><td>kind get clusters</td><td>List all KIND clusters</td><td><code>kind get clusters</code></td></tr>
-          <tr><td>kind delete cluster</td><td>Destroy a cluster</td><td><code>kind delete cluster --name dev</code></td></tr>
-          <tr><td>kind load docker-image</td><td>Push local image to cluster</td><td><code>kind load docker-image myapp:v1 --name dev</code></td></tr>
-          <tr><td>kind get nodes</td><td>List cluster nodes</td><td><code>kind get nodes --name dev</code></td></tr>
-        </table>
-      </div>
-
-      <div class="memory-trick">
-        <div class="mt-title">🧠 Memory Trick</div>
-        <p><strong>D-K-K</strong> = <strong>D</strong>ocker first, then <strong>K</strong>ubectl, then <strong>K</strong>IND. Like building a house: foundation → tools → blueprint. You can't schedule what you can't run!</p>
-      </div>
-      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Forgetting <code>sudo usermod -aG docker $USER</code> → all KIND commands fail with permission denied. Always log out and back in after this step.</div></div>
     </div>
+    <div class="tbl-wrap"><table class="cmd"><tr><th>Command</th><th>Purpose</th><th>Example</th></tr><tr><td>kind create cluster</td><td>Create a cluster</td><td><code>kind create cluster --name dev --config kind.yaml</code></td></tr><tr><td>kind get clusters</td><td>List clusters</td><td><code>kind get clusters</code></td></tr><tr><td>kind delete cluster</td><td>Destroy cluster</td><td><code>kind delete cluster --name dev</code></td></tr><tr><td>kind load docker-image</td><td>Push local image to cluster</td><td><code>kind load docker-image myapp:v1 --name dev</code></td></tr><tr><td>kind export kubeconfig</td><td>Get kubeconfig for cluster</td><td><code>kind export kubeconfig --name dev</code></td></tr></table></div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>D-K-K</strong> = Docker, Kubectl, KIND — install in this order. Like building a house: foundation (Docker) → tools (kubectl) → blueprint (KIND cluster).</p></div>
+    <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Forgetting <code>sudo usermod -aG docker $USER</code> then log out + log back in. Without this, KIND fails with permission denied.</div></div>
+  </div>
 
-    <!-- KUBECTL BASICS -->
-    <div id="sec-kubectl" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 2</span><span class="tag tag-purple">CLI</span></div>
-        <h1>kubectl Basics</h1>
-        <p>kubectl is the CLI that talks to the Kubernetes API server. Every command you type → API call → cluster state change. Mastering kubectl = mastering K8s.</p>
-      </div>
+  <div id="sec-rs" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 4</span><span class="tag tag-green">Workload</span></div><h1>ReplicaSets — Self-Healing</h1><p>A ReplicaSet ensures N pod replicas are always running. Kill a pod — it immediately creates a replacement. The supervisor that never sleeps.</p></div>
+    <div class="tbl-wrap"><table class="cmd"><tr><th>Command</th><th>Purpose</th><th>Example</th></tr><tr><td>kubectl get rs</td><td>List ReplicaSets</td><td><code>kubectl get rs -o wide</code></td></tr><tr><td>kubectl describe rs</td><td>Events + owned pods</td><td><code>kubectl describe rs nginx-rs</code></td></tr><tr><td>kubectl scale rs</td><td>Change replica count</td><td><code>kubectl scale rs nginx-rs --replicas=5</code></td></tr><tr><td>kubectl delete rs</td><td>Remove RS + all pods</td><td><code>kubectl delete rs nginx-rs --cascade=foreground</code></td></tr></table></div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>ReplicaSet = Security guard</strong> doing headcount every few seconds. Too few? Spawn more. Too many? Remove extras. Always hits target.</p></div>
+    <div class="alert alert-yellow"><span class="alert-icon">💡</span><div><strong>Best practice:</strong> Don't use ReplicaSets directly — use Deployments which wrap ReplicaSets and add rolling updates + rollback.</div></div>
+  </div>
 
-      <div class="card">
-        <h3>Real-World Example</h3>
-        <p>You deployed a new app and users report it's down. You use <code>kubectl get pods</code> to check status, <code>kubectl describe pod</code> to see events, and <code>kubectl logs</code> to read the error — all in under 60 seconds.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📋 Essential kubectl Commands</div>
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>kubectl cluster-info</td><td>Show API server &amp; services URL</td><td><code>kubectl cluster-info</code></td></tr>
-          <tr><td>kubectl get nodes</td><td>List all nodes + status</td><td><code>kubectl get nodes -o wide</code></td></tr>
-          <tr><td>kubectl get pods</td><td>List pods in namespace</td><td><code>kubectl get pods -A</code></td></tr>
-          <tr><td>kubectl describe</td><td>Detailed info + events</td><td><code>kubectl describe pod nginx</code></td></tr>
-          <tr><td>kubectl apply -f</td><td>Create/update from YAML</td><td><code>kubectl apply -f pod.yaml</code></td></tr>
-          <tr><td>kubectl delete</td><td>Remove a resource</td><td><code>kubectl delete pod nginx</code></td></tr>
-          <tr><td>kubectl logs</td><td>View container stdout</td><td><code>kubectl logs -f nginx</code></td></tr>
-          <tr><td>kubectl exec</td><td>Run command in container</td><td><code>kubectl exec -it nginx -- bash</code></td></tr>
-          <tr><td>kubectl get all</td><td>Everything in namespace</td><td><code>kubectl get all -n default</code></td></tr>
-          <tr><td>kubectl config</td><td>Manage kubeconfig contexts</td><td><code>kubectl config get-contexts</code></td></tr>
-        </table>
-      </div>
-
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>bash – Quick cluster health check</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl cluster-info
-# Kubernetes control plane is running at https://127.0.0.1:PORT
-
-kubectl get nodes -o wide
-# NAME                      STATUS   ROLES           AGE   VERSION
-# my-cluster-control-plane  Ready    control-plane   5m    v1.29.0
-# my-cluster-worker         Ready    worker          4m    v1.29.0
-# my-cluster-worker2        Ready    worker          4m    v1.29.0
-
-kubectl get pods -A   # all namespaces
-kubectl get events --sort-by='.lastTimestamp'</code></pre>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">kubectl Request Flow</div>
-        <div class="mermaid-wrap">
-          <div class="mermaid">
-sequenceDiagram
-  participant U as 👤 You (kubectl)
-  participant A as API Server
-  participant E as etcd
-  participant S as Scheduler
-  participant K as kubelet (Node)
-  U->>A: kubectl apply -f pod.yaml
-  A->>E: Store desired state
-  A->>S: New pod needs scheduling
-  S->>A: Assign pod to Node 2
-  A->>K: Create pod spec
-  K->>K: Pull image & start container
-  K->>A: Report pod Running
-  A->>U: pod/nginx created ✓
-          </div>
-        </div>
-      </div>
-
-      <div class="memory-trick">
-        <div class="mt-title">🧠 Memory Trick</div>
-        <p><strong>G-D-L-E</strong> = <strong>G</strong>et (what's there?) → <strong>D</strong>escribe (what's wrong?) → <strong>L</strong>ogs (what did it print?) → <strong>E</strong>xec (go inside and check). This is your 4-step debug loop!</p>
-      </div>
-      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Running <code>kubectl get pods</code> without <code>-n namespace</code> or <code>-A</code> and wondering why nothing shows. Default namespace is often empty!</div></div>
-    </div>
-
-    <!-- PODS -->
-    <div id="sec-pods" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 3</span><span class="tag tag-green">Workload</span></div>
-        <h1>Pods</h1>
-        <p>A Pod is the smallest deployable unit in Kubernetes. It wraps one (or more) containers that share network and storage. Every container in K8s runs inside a Pod.</p>
-      </div>
-      <div class="card"><h3>Why Pods?</h3><p>Docker runs containers. K8s runs Pods. Pods add a shared network namespace (one IP per pod), shared volumes, and lifecycle management. A sidecar container (logging, proxy) can live next to your app in the same Pod.</p></div>
-      <div class="card"><h3>Real-World Example</h3><p>An Nginx web server pod + a Filebeat sidecar container sharing <code>/var/log/nginx</code> via a shared volume. One pod IP, two processes working together.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>nginx-pod.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx
-  labels:
-    app: nginx
-spec:
-  containers:
-  - name: nginx
-    image: nginx:1.25
-    ports:
-    - containerPort: 80
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "250m"
-      limits:
-        memory: "128Mi"
-        cpu: "500m"</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl apply -f nginx-pod.yaml
-kubectl get pods -o wide
-kubectl describe pod nginx        # events, node, IP
-kubectl exec -it nginx -- bash    # shell into pod
-kubectl port-forward pod/nginx 8080:80  # local testing
-kubectl delete pod nginx</code></pre>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">📋 Pod Commands</div>
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>kubectl run</td><td>Quickly create a pod</td><td><code>kubectl run nginx --image=nginx</code></td></tr>
-          <tr><td>kubectl get pods</td><td>List pods + status</td><td><code>kubectl get pods -o wide</code></td></tr>
-          <tr><td>kubectl describe pod</td><td>Events &amp; details</td><td><code>kubectl describe pod nginx</code></td></tr>
-          <tr><td>kubectl logs</td><td>Container stdout</td><td><code>kubectl logs nginx -f</code></td></tr>
-          <tr><td>kubectl exec</td><td>Shell into container</td><td><code>kubectl exec -it nginx -- bash</code></td></tr>
-          <tr><td>kubectl port-forward</td><td>Local port to pod</td><td><code>kubectl port-forward pod/nginx 8080:80</code></td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-title">Pod Lifecycle</div>
-        <div class="mermaid-wrap">
-          <div class="mermaid">
-stateDiagram-v2
-  [*] --> Pending : kubectl apply
-  Pending --> Running : Image pulled, container started
-  Running --> Succeeded : Container exits 0
-  Running --> Failed : Container exits non-0
-  Running --> Unknown : Node unreachable
-  Failed --> Pending : Restart policy (Always/OnFailure)
-  Succeeded --> [*]
-          </div>
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Pod = Hotel Room.</strong> One IP address (room number), multiple guests (containers) sharing the bathroom (volumes &amp; network). You can't book half a room — you get the whole Pod.</p></div>
-      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Pods are ephemeral! Never store persistent data inside a pod without a PersistentVolume. When a pod dies, its filesystem dies with it.</div></div>
-    </div>
-
-    <!-- REPLICASETS -->
-    <div id="sec-replicasets" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 4</span><span class="tag tag-green">Workload</span></div>
-        <h1>ReplicaSets</h1>
-        <p>A ReplicaSet ensures a specified number of identical pod replicas are running at all times. If a pod dies, it creates a new one. If too many exist, it deletes extras.</p>
-      </div>
-      <div class="card"><h3>Why ReplicaSets?</h3><p>Single pods have no self-healing. A ReplicaSet is a <strong>supervisor</strong> — it watches pods via label selectors and reconciles actual vs desired count, making your app resilient to node and pod failures.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>replicaset.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">apiVersion: apps/v1
-kind: ReplicaSet
-metadata:
-  name: nginx-rs
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl apply -f replicaset.yaml
-kubectl get rs                      # Check ReplicaSet
-kubectl get pods --show-labels      # See label selectors
-kubectl scale rs nginx-rs --replicas=5  # Scale up
-kubectl delete pod nginx-rs-xxxxx  # RS recreates it!
-kubectl delete rs nginx-rs         # Deletes RS + all pods</code></pre>
-        </div>
-      </div>
-      <div class="card">
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>kubectl get rs</td><td>List ReplicaSets</td><td><code>kubectl get rs -o wide</code></td></tr>
-          <tr><td>kubectl describe rs</td><td>Events &amp; pod status</td><td><code>kubectl describe rs nginx-rs</code></td></tr>
-          <tr><td>kubectl scale rs</td><td>Change replica count</td><td><code>kubectl scale rs nginx-rs --replicas=5</code></td></tr>
-          <tr><td>kubectl delete rs</td><td>Remove RS + its pods</td><td><code>kubectl delete rs nginx-rs</code></td></tr>
-        </table>
-      </div>
-      <div class="mermaid-wrap">
-        <div class="mermaid">
-graph LR
-  RS["ReplicaSet\n(desired: 3)"] -->|manages| P1["Pod 1 ✅"]
-  RS -->|manages| P2["Pod 2 ✅"]
-  RS -->|manages| P3["Pod 3 ✅"]
-  P2 -->|dies ❌| D["Pod 2 Deleted"]
-  D -->|RS detects| RS
-  RS -->|creates| P4["Pod 2' ✅ (new)"]
-  style RS fill:#1d4ed8,stroke:#60a5fa,color:#fff
-  style D fill:#7f1d1d,stroke:#f87171,color:#fff
-  style P4 fill:#065f46,stroke:#34d399,color:#fff
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>ReplicaSet = Security Guard</strong> for pods. It checks the headcount every few seconds. Too few? Spawn more. Too many? Send some home. Always hits the target number.</p></div>
-      <div class="alert alert-yellow"><span class="alert-icon">💡</span><div><strong>Best Practice:</strong> Don't use ReplicaSets directly — use <strong>Deployments</strong> which wrap ReplicaSets and add rolling update + rollback capabilities.</div></div>
-    </div>
-
-    <!-- DEPLOYMENTS -->
-    <div id="sec-deployments" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 5</span><span class="tag tag-green">Workload</span></div>
-        <h1>Deployments</h1>
-        <p>A Deployment is the standard way to run stateless apps in K8s. It manages ReplicaSets to provide rolling updates, rollback, and self-healing — all declaratively.</p>
-      </div>
-      <div class="card"><h3>Real-World Example</h3><p>You have <code>myapp:v1</code> running with 5 replicas. Update to <code>v2</code> — K8s creates a new ReplicaSet, rolls pods over one by one, zero downtime. Something breaks? One command rolls back to v1.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>deployment.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deploy
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: nginx
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash – Deploy, update, rollback</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl apply -f deployment.yaml
-kubectl get deploy
-kubectl rollout status deployment/nginx-deploy
-
-# Rolling update
-kubectl set image deployment/nginx-deploy nginx=nginx:1.26
-kubectl rollout history deployment/nginx-deploy
-
-# Rollback
-kubectl rollout undo deployment/nginx-deploy
-kubectl rollout undo deployment/nginx-deploy --to-revision=1
-
-# Scale
-kubectl scale deployment nginx-deploy --replicas=5</code></pre>
-        </div>
-      </div>
-      <div class="card">
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>kubectl get deploy</td><td>List Deployments</td><td><code>kubectl get deploy -o wide</code></td></tr>
-          <tr><td>kubectl rollout status</td><td>Watch rollout progress</td><td><code>kubectl rollout status deploy/nginx</code></td></tr>
-          <tr><td>kubectl rollout history</td><td>View revision history</td><td><code>kubectl rollout history deploy/nginx</code></td></tr>
-          <tr><td>kubectl rollout undo</td><td>Roll back to previous</td><td><code>kubectl rollout undo deploy/nginx</code></td></tr>
-          <tr><td>kubectl set image</td><td>Trigger rolling update</td><td><code>kubectl set image deploy/nginx nginx=nginx:1.26</code></td></tr>
-          <tr><td>kubectl scale</td><td>Change replica count</td><td><code>kubectl scale deploy/nginx --replicas=5</code></td></tr>
-        </table>
-      </div>
-      <div class="mermaid-wrap">
-        <div class="mermaid">
-graph TB
-  D["Deployment\n(nginx:1.25 → nginx:1.26)"]
-  D --> RS1["ReplicaSet v1\nnginx:1.25 (scale down)"]
-  D --> RS2["ReplicaSet v2\nnginx:1.26 (scale up)"]
-  RS1 --> P1["Pod (old) ❌"]
-  RS1 --> P2["Pod (old) ❌"]
-  RS2 --> P3["Pod (new) ✅"]
-  RS2 --> P4["Pod (new) ✅"]
-  RS2 --> P5["Pod (new) ✅"]
-  style D fill:#7c3aed,stroke:#a78bfa,color:#fff
-  style RS1 fill:#7f1d1d,stroke:#f87171,color:#fff
-  style RS2 fill:#065f46,stroke:#34d399,color:#fff
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Deployment = Git for your Pods.</strong> It keeps history (revisions), lets you <code>push</code> updates (set image), and <code>revert</code> when things break (rollout undo). Always commit your YAML! 😄</p></div>
-      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Not setting <code>--record</code> or adding <code>change-cause</code> annotation means rollout history is empty and you can't trace what changed.</div></div>
-    </div>
-
-    <!-- SERVICES -->
-    <div id="sec-services" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 6</span><span class="tag tag-purple">Networking</span></div>
-        <h1>Services</h1>
-        <p>Pods are ephemeral and get new IPs on restart. A Service provides a <strong>stable virtual IP + DNS name</strong> that load-balances traffic to matching pods via label selectors.</p>
-      </div>
-      <div class="card">
-        <h3>Three Service Types</h3>
-        <div class="grid2">
-          <div><span class="tag tag-green" style="margin-bottom:8px;display:inline-block">ClusterIP</span><p>Internal only. Pod-to-pod communication inside the cluster. Default type.</p></div>
-          <div><span class="tag tag-yellow" style="margin-bottom:8px;display:inline-block">NodePort</span><p>Exposes on each node's IP at a static port (30000–32767). Accessible externally.</p></div>
-          <div><span class="tag tag-blue" style="margin-bottom:8px;display:inline-block">LoadBalancer</span><p>Cloud LB provisioned automatically (AWS ELB, GCP LB). External IP assigned.</p></div>
-          <div><span class="tag tag-purple" style="margin-bottom:8px;display:inline-block">ExternalName</span><p>Maps service to external DNS name. No proxy, just CNAME.</p></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>service.yaml – All three types</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">---
-# ClusterIP (default) — internal only
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-clusterip
-spec:
-  selector:
-    app: nginx
-  ports:
-  - port: 80
-    targetPort: 80
----
-# NodePort — external access
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-nodeport
-spec:
-  type: NodePort
-  selector:
-    app: nginx
-  ports:
-  - port: 80
-    targetPort: 80
-    nodePort: 30080
----
-# LoadBalancer — cloud / metallb
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-lb
-spec:
-  type: LoadBalancer
-  selector:
-    app: nginx
-  ports:
-  - port: 80
-    targetPort: 80</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl apply -f service.yaml
-kubectl get svc
-kubectl describe svc nginx-clusterip
-# Test NodePort in KIND
-kubectl get nodes -o wide  # get node IP
-curl http://NODE_IP:30080</code></pre>
-        </div>
-      </div>
-      <div class="card">
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>kubectl get svc</td><td>List services</td><td><code>kubectl get svc -o wide</code></td></tr>
-          <tr><td>kubectl describe svc</td><td>Endpoints &amp; selectors</td><td><code>kubectl describe svc nginx</code></td></tr>
-          <tr><td>kubectl expose</td><td>Create service from resource</td><td><code>kubectl expose deploy nginx --port=80 --type=NodePort</code></td></tr>
-          <tr><td>kubectl delete svc</td><td>Remove service</td><td><code>kubectl delete svc nginx</code></td></tr>
-        </table>
-      </div>
-      <div class="mermaid-wrap">
-        <div class="mermaid">
-graph LR
-  EXT["🌐 External\nTraffic"] -->|NodePort 30080| NP["NodePort Service\n:30080"]
-  NP -->|":80"| CIP["ClusterIP\n10.96.x.x:80"]
-  CIP -->|LB| P1["Pod 1\n:80"]
-  CIP -->|LB| P2["Pod 2\n:80"]
-  CIP -->|LB| P3["Pod 3\n:80"]
-  INT["📦 Internal\nPod"] -->|DNS: nginx:80| CIP
-  style EXT fill:#1e3a5f,stroke:#38bdf8,color:#fff
-  style NP fill:#78350f,stroke:#fbbf24,color:#fff
-  style CIP fill:#1d4ed8,stroke:#60a5fa,color:#fff
-  style INT fill:#374151,stroke:#9ca3af,color:#fff
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>C-N-L</strong> = <strong>C</strong>lub (ClusterIP — internal members only) → <strong>N</strong>eighborhood (NodePort — reachable from your block) → <strong>L</strong>obby (LoadBalancer — public entrance, anyone can walk in).</p></div>
-    </div>
-
-    <!-- NAMESPACES -->
-    <div id="sec-namespaces" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 7</span><span class="tag tag-green">Organization</span></div>
-        <h1>Namespaces</h1>
-        <p>Namespaces divide a single K8s cluster into virtual clusters. Resources in different namespaces are isolated but can communicate using full DNS names.</p>
-      </div>
-      <div class="card"><h3>Why Namespaces?</h3><p>One cluster, multiple teams. Dev, staging, prod — or team-frontend, team-backend. Each namespace has its own resource quotas, RBAC rules, and service discovery scope. Saves money vs multiple clusters.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl get namespaces              # List all NS
-kubectl create namespace dev        # Create dev NS
+  <div id="sec-ns" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 7</span><span class="tag tag-yellow">Config</span></div><h1>Namespaces — Virtual Clusters</h1><p>Namespaces divide one cluster into isolated virtual clusters. Same hardware, different teams, different environments — without paying for multiple clusters.</p></div>
+    <div class="code-block"><div class="code-header"><span class="code-lang"><span class="code-dot" style="background:#ff5f57"></span><span class="code-dot" style="background:#ffbd2e"></span><span class="code-dot" style="background:#28ca41"></span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3">kubectl get namespaces
+kubectl create namespace dev
 kubectl create namespace production
-
-# Deploy into a namespace
 kubectl apply -f pod.yaml -n dev
 kubectl get pods -n dev
-kubectl get pods -A                 # All namespaces
-
-# Cross-namespace DNS
-# service.namespace.svc.cluster.local
-# e.g.: nginx.dev.svc.cluster.local
-
-# Set default namespace for session
-kubectl config set-context --current --namespace=dev</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>namespace.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev
-  labels:
-    env: development</code></pre>
-        </div>
-      </div>
-      <div class="card">
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>kubectl get ns</td><td>List namespaces</td><td><code>kubectl get ns</code></td></tr>
-          <tr><td>kubectl create ns</td><td>Create namespace</td><td><code>kubectl create ns staging</code></td></tr>
-          <tr><td>kubectl -n NS</td><td>Target a namespace</td><td><code>kubectl get pods -n production</code></td></tr>
-          <tr><td>kubectl delete ns</td><td>Delete NS + all resources</td><td><code>kubectl delete ns dev</code></td></tr>
-        </table>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Namespace = Office Floor.</strong> Same building (cluster), different floors (namespaces). You can call someone on another floor using their full address (<code>service.namespace.svc.cluster.local</code>), not just their name.</p></div>
-      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> <code>kubectl delete namespace production</code> deletes EVERYTHING inside — all pods, services, configs, secrets. Always double-check!</div></div>
+kubectl get pods -A                     <span style="color:#8b949e"># all namespaces</span>
+kubectl config set-context --current --namespace=dev   <span style="color:#8b949e"># set default</span>
+<span style="color:#8b949e"># Cross-namespace DNS: service.namespace.svc.cluster.local</span>
+<span style="color:#8b949e"># e.g. db.production.svc.cluster.local</span></code></pre>
     </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>Namespace = Office floor.</strong> Same building (cluster), different floors (namespaces). Talk to someone on another floor using full address: <code>service.namespace.svc.cluster.local</code></p></div>
+    <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Danger:</strong> <code>kubectl delete namespace production</code> deletes ALL resources inside. Every pod, service, secret, config — gone. No confirmation. Be careful!</div></div>
+  </div>
 
-    <!-- CONFIGMAPS -->
-    <div id="sec-configmaps" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 8</span><span class="tag tag-yellow">Config</span></div>
-        <h1>ConfigMaps</h1>
-        <p>ConfigMaps store non-sensitive configuration as key-value pairs, separate from the container image. Inject them into pods as environment variables or mounted files.</p>
-      </div>
-      <div class="card"><h3>Real-World Example</h3><p>Same Docker image deployed to dev and prod. ConfigMap holds <code>DATABASE_URL</code>, <code>LOG_LEVEL</code>, <code>API_ENDPOINT</code>. Change config without rebuilding the image — just update the ConfigMap and restart pods.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>configmap.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-data:
-  LOG_LEVEL: "debug"
-  DATABASE_URL: "postgres://db:5432/myapp"
-  config.ini: |
-    [app]
-    port=8080
-    debug=true</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>pod-with-configmap.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">spec:
-  containers:
-  - name: myapp
-    image: myapp:v1
-    # Method 1: Environment variables
-    envFrom:
-    - configMapRef:
-        name: app-config
-    # Method 2: Volume mount (for files)
-    volumeMounts:
-    - name: config-vol
-      mountPath: /etc/config
-  volumes:
-  - name: config-vol
-    configMap:
-      name: app-config</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl apply -f configmap.yaml
-kubectl get configmap
-kubectl describe configmap app-config
-kubectl create configmap env-config --from-literal=ENV=prod
-kubectl create configmap file-config --from-file=app.conf</code></pre>
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>ConfigMap = .env file</strong> but for Kubernetes. You wouldn't hardcode your DB URL in your app code — don't hardcode it in your Docker image either. Externalize it!</p></div>
-      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> ConfigMaps are NOT for passwords or API keys — those go in <strong>Secrets</strong>. ConfigMaps are stored in etcd unencrypted, visible to anyone with cluster access.</div></div>
+  <div id="sec-cm" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 8</span><span class="tag tag-yellow">Config</span></div><h1>ConfigMaps</h1><p>Decouple configuration from container images. Same Docker image, different behavior in dev vs prod — just swap the ConfigMap.</p></div>
+    <div class="code-block"><div class="code-header"><span>configmap.yaml + usage</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3"><span style="color:#8b949e"># Create ConfigMap</span>
+kubectl create configmap app-config \
+  --from-literal=LOG_LEVEL=debug \
+  --from-literal=DB_URL=postgres://db:5432/app \
+  --dry-run=client -o yaml > cm.yaml
+
+<span style="color:#8b949e"># Use as env vars in pod</span>
+<span style="color:#ff7b72">envFrom</span><span style="color:#79c0ff">:</span>
+<span style="color:#79c0ff">-</span> <span style="color:#ff7b72">configMapRef</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> app-config
+
+<span style="color:#8b949e"># Use as mounted file</span>
+<span style="color:#ff7b72">volumes</span><span style="color:#79c0ff">:</span>
+<span style="color:#79c0ff">-</span> <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> config-vol
+  <span style="color:#ff7b72">configMap</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> app-config</code></pre>
     </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>ConfigMap = .env file for K8s.</strong> Don't hardcode config in Docker images. Externalize it so you can change behavior without rebuilding.</p></div>
+    <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Never put secrets here!</strong> ConfigMaps are stored plaintext in etcd. Use Secrets for passwords, tokens, and private keys.</div></div>
+  </div>
 
-    <!-- SECRETS -->
-    <div id="sec-secrets" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 9</span><span class="tag tag-red">Security</span></div>
-        <h1>Secrets</h1>
-        <p>Secrets store sensitive data (passwords, tokens, TLS certs) in base64-encoded form. K8s provides access controls and encryption-at-rest for Secrets, unlike ConfigMaps.</p>
-      </div>
-      <div class="card"><h3>Real-World Example</h3><p>Your app connects to a database. Store <code>DB_PASSWORD</code> and <code>API_TOKEN</code> in a Secret. Mount it as env vars or a file. No passwords in code, no passwords in Docker images, no passwords in Git history.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>bash – Create secrets</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash"># From literals (values auto base64-encoded)
-kubectl create secret generic db-secret \
+  <div id="sec-sec" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 9</span><span class="tag tag-red">Security</span></div><h1>Secrets</h1><p>Store sensitive data (passwords, tokens, TLS certs) separately from code. Base64-encoded at rest, RBAC-protected access.</p></div>
+    <div class="code-block"><div class="code-header"><span>bash — Secrets workflow</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3">kubectl create secret generic db-secret \
   --from-literal=username=admin \
   --from-literal=password=Sup3rS3cr3t!
 
-# From file
-kubectl create secret generic tls-secret \
-  --from-file=tls.crt=server.crt \
-  --from-file=tls.key=server.key
-
-# View (base64 encoded)
 kubectl get secret db-secret -o yaml
-# Decode
-kubectl get secret db-secret -o jsonpath='{.data.password}' | base64 -d</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>pod-with-secret.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">spec:
-  containers:
-  - name: app
-    image: myapp:v1
-    env:
-    - name: DB_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: db-secret
-          key: password
-    volumeMounts:
-    - name: secret-vol
-      mountPath: /run/secrets
-      readOnly: true
-  volumes:
-  - name: secret-vol
-    secret:
-      secretName: db-secret</code></pre>
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>ConfigMap = Plain envelope. Secret = Sealed envelope.</strong> Both carry messages (config). But Secrets are sealed (base64 + RBAC + optional encryption-at-rest). Don't put bank details in a plain envelope!</p></div>
-      <div class="alert alert-red"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> Base64 is NOT encryption! Anyone with cluster access can decode it. Enable etcd encryption-at-rest and use RBAC to restrict Secret access in production.</div></div>
-    </div>
+kubectl get secret db-secret -o jsonpath='{.data.password}' | base64 -d
 
-    <!-- VOLUMES -->
-    <div id="sec-volumes" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 10</span><span class="tag tag-green">Storage</span></div>
-        <h1>Volumes &amp; Persistent Volumes</h1>
-        <p>Kubernetes volumes give containers a place to store data that outlives a container restart. PersistentVolumes (PV) and PersistentVolumeClaims (PVC) provide durable cluster-level storage.</p>
-      </div>
-      <div class="card"><h3>Why Persistent Volumes?</h3><p>Container filesystem is ephemeral — restart = data gone. PV is a cluster resource (like a USB drive). A PVC is a request for storage. Pods use PVCs, not PVs directly — decoupling workload from infrastructure.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>pv-pvc.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">---
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv-local
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-  - ReadWriteOnce
-  hostPath:
-    path: /data/pv1    # KIND-friendly (hostPath)
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: pvc-app
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 500Mi
----
-# Use PVC in a Pod
-apiVersion: v1
-kind: Pod
-metadata:
-  name: db-pod
-spec:
-  containers:
-  - name: postgres
-    image: postgres:15
-    volumeMounts:
-    - mountPath: /var/lib/postgresql/data
-      name: db-storage
-  volumes:
-  - name: db-storage
-    persistentVolumeClaim:
-      claimName: pvc-app</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl get pv       # Check PV status (Available/Bound)
-kubectl get pvc      # Check PVC binding
-kubectl describe pvc pvc-app</code></pre>
-        </div>
-      </div>
-      <div class="mermaid-wrap">
-        <div class="mermaid">
-graph LR
-  P["Pod"] -->|mounts| PVC["PVC\n(request: 500Mi)"]
-  PVC -->|bound to| PV["PV\n(capacity: 1Gi)"]
-  PV -->|backed by| ST["Storage\n(hostPath/NFS/EBS/GCS)"]
-  style P fill:#7c3aed,stroke:#a78bfa,color:#fff
-  style PVC fill:#1d4ed8,stroke:#60a5fa,color:#fff
-  style PV fill:#065f46,stroke:#34d399,color:#fff
-  style ST fill:#78350f,stroke:#fbbf24,color:#fff
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>PV = Parking Lot. PVC = Parking Ticket. Pod = Car.</strong> You claim a spot (PVC), the lot gives you a real space (PV). Your car (Pod) doesn't care which exact spot — just that it's parked somewhere.</p></div>
-      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> PVC stays <code>Pending</code> when no PV matches the access mode or storage size. Check <code>kubectl describe pvc</code> → Events section for exact reason.</div></div>
+<span style="color:#8b949e"># Use in pod</span>
+<span style="color:#ff7b72">env</span><span style="color:#79c0ff">:</span>
+<span style="color:#79c0ff">-</span> <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> DB_PASSWORD
+  <span style="color:#ff7b72">valueFrom</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">secretKeyRef</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> db-secret
+      <span style="color:#ff7b72">key</span><span style="color:#79c0ff">:</span> password</code></pre>
     </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>ConfigMap = plain envelope. Secret = sealed envelope.</strong> Both carry messages, but Secrets are sealed. Base64 is NOT encryption — it's just encoding. Enable etcd encryption-at-rest in prod!</p></div>
+  </div>
 
-    <!-- INGRESS -->
-    <div id="sec-ingress" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 11</span><span class="tag tag-purple">Networking</span></div>
-        <h1>Ingress</h1>
-        <p>Ingress manages external HTTP/HTTPS access to services using host/path-based routing rules. One Ingress replaces many LoadBalancer services — one external IP, many backends.</p>
-      </div>
-      <div class="card"><h3>Real-World Example</h3><p><code>api.myapp.com/users</code> → backend service. <code>api.myapp.com/orders</code> → orders service. <code>app.myapp.com</code> → frontend service. All via ONE Nginx Ingress Controller and ONE external IP.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>bash – Install Ingress Controller (KIND)</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash"># Install NGINX Ingress Controller for KIND
+  <div id="sec-vol" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 10</span><span class="tag tag-green">Storage</span></div><h1>Volumes & Persistent Volumes</h1><p>Container filesystem is ephemeral. PV (cluster storage) + PVC (your claim to that storage) = data that survives pod restarts. Like a network drive attached to your container.</p></div>
+    <div class="code-block"><div class="code-header"><span>pv-pvc-pod.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3"><span style="color:#8b949e"># PV — the actual storage</span>
+<span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> v1
+<span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> PersistentVolume
+<span style="color:#ff7b72">metadata</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> pv-local
+<span style="color:#ff7b72">spec</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">capacity</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">storage</span><span style="color:#79c0ff">:</span> 1Gi
+  <span style="color:#ff7b72">accessModes</span><span style="color:#79c0ff">:</span> [ReadWriteOnce]
+  <span style="color:#ff7b72">hostPath</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">path</span><span style="color:#79c0ff">:</span> /data/pv1
+---
+<span style="color:#8b949e"># PVC — your reservation</span>
+<span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> v1
+<span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> PersistentVolumeClaim
+<span style="color:#ff7b72">metadata</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> my-pvc
+<span style="color:#ff7b72">spec</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">accessModes</span><span style="color:#79c0ff">:</span> [ReadWriteOnce]
+  <span style="color:#ff7b72">resources</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">requests</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">storage</span><span style="color:#79c0ff">:</span> 500Mi</code></pre>
+    </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>PV = Parking lot. PVC = Parking ticket. Pod = Your car.</strong> You claim a spot (PVC), the lot gives a real space (PV). Your car doesn't care which exact spot — just that it's parked.</p></div>
+  </div>
+
+  <div id="sec-ingress" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 11</span><span class="tag tag-purple">Networking</span></div><h1>Ingress</h1><p>One external IP, many backends. Route api.myapp.com → backend service, app.myapp.com → frontend — without creating a LoadBalancer per service.</p></div>
+    <div class="code-block"><div class="code-header"><span>ingress.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3"><span style="color:#8b949e"># Install Nginx Ingress Controller for KIND</span>
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>ingress.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: app-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: myapp.local
-    http:
-      paths:
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 80
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend-service
-            port:
-              number: 80</code></pre>
-        </div>
-      </div>
-      <div class="mermaid-wrap">
-        <div class="mermaid">
-graph LR
-  I["🌐 Internet\nmyapp.local"] --> IC["Ingress Controller\n(Nginx Pod)"]
-  IC -->|"/api"| AS["api-service\n:80"]
-  IC -->|"/"| FS["frontend-service\n:80"]
-  AS --> AP["API Pods"]
-  FS --> FP["Frontend Pods"]
-  style I fill:#1e3a5f,stroke:#38bdf8,color:#fff
-  style IC fill:#7c3aed,stroke:#a78bfa,color:#fff
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Ingress = Hotel Concierge.</strong> One front desk, many rooms. You say "I'm here for Room /api" and the concierge (Ingress) routes you to the right service without you needing each room's direct number.</p></div>
+---
+<span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> networking.k8s.io/v1
+<span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> Ingress
+<span style="color:#ff7b72">metadata</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> app-ingress
+  <span style="color:#ff7b72">annotations</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">nginx.ingress.kubernetes.io/rewrite-target</span><span style="color:#79c0ff">:</span> /
+<span style="color:#ff7b72">spec</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">ingressClassName</span><span style="color:#79c0ff">:</span> nginx
+  <span style="color:#ff7b72">rules</span><span style="color:#79c0ff">:</span>
+  <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">host</span><span style="color:#79c0ff">:</span> myapp.local
+    <span style="color:#ff7b72">http</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">paths</span><span style="color:#79c0ff">:</span>
+      <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">path</span><span style="color:#79c0ff">:</span> /api
+        <span style="color:#ff7b72">pathType</span><span style="color:#79c0ff">:</span> Prefix
+        <span style="color:#ff7b72">backend</span><span style="color:#79c0ff">:</span>
+          <span style="color:#ff7b72">service</span><span style="color:#79c0ff">:</span>
+            <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> api-service
+            <span style="color:#ff7b72">port</span><span style="color:#79c0ff">:</span>
+              <span style="color:#ff7b72">number</span><span style="color:#79c0ff">:</span> 80</code></pre>
     </div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>Ingress = Hotel concierge.</strong> One front desk (Ingress controller), many rooms (services). You tell the concierge your destination (/api, /app) and they route you — no direct room number needed.</p></div>
+  </div>
 
-    <!-- AUTOSCALING -->
-    <div id="sec-autoscaling" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 12</span><span class="tag tag-green">Scale</span></div>
-        <h1>Autoscaling</h1>
-        <p>K8s has three autoscalers: HPA scales pod replicas based on CPU/memory, VPA adjusts pod resource requests, and Cluster Autoscaler adds/removes nodes. HPA is the most common.</p>
-      </div>
-      <div class="card"><h3>Real-World Example</h3><p>Black Friday traffic spikes 10x. HPA detects CPU > 70%, scales your Deployment from 3 → 20 pods automatically. Traffic drops? Scales back to 3. You sleep through the night.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>bash – Enable metrics server (KIND)</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-# For KIND, patch to allow insecure TLS:
-kubectl patch deployment metrics-server -n kube-system \
-  --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>hpa.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-yaml">apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: nginx-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: nginx-deploy
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">kubectl apply -f hpa.yaml
-kubectl get hpa                          # Watch scaling events
-kubectl top pods                         # CPU/Memory usage
-kubectl top nodes
-# Quick imperative HPA:
-kubectl autoscale deployment nginx-deploy --cpu-percent=70 --min=2 --max=10</code></pre>
-        </div>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>HPA = Elastic waistband on your trousers.</strong> Sets minimum (can't go below), maximum (won't burst), and expands/contracts based on how much you eat (load). Comfortable in all situations!</p></div>
-      <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div><strong>Common Mistake:</strong> HPA won't work without <code>resources.requests.cpu</code> set on the container. It needs a baseline to calculate percentage utilization.</div></div>
+  <div id="sec-hpa" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 12</span><span class="tag tag-green">Scale</span></div><h1>Autoscaling — HPA</h1><p>HPA watches CPU/memory. Too high → add pods. Too low → remove pods. Sleep through Black Friday traffic spikes.</p></div>
+    <div class="code-block"><div class="code-header"><span>hpa.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><code style="color:#e6edf3"><span style="color:#8b949e"># Quick imperative</span>
+kubectl autoscale deployment nginx --cpu-percent=70 --min=2 --max=10
+
+<span style="color:#8b949e"># Declarative HPA</span>
+<span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> autoscaling/v2
+<span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> HorizontalPodAutoscaler
+<span style="color:#ff7b72">metadata</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> nginx-hpa
+<span style="color:#ff7b72">spec</span><span style="color:#79c0ff">:</span>
+  <span style="color:#ff7b72">scaleTargetRef</span><span style="color:#79c0ff">:</span>
+    <span style="color:#ff7b72">apiVersion</span><span style="color:#79c0ff">:</span> apps/v1
+    <span style="color:#ff7b72">kind</span><span style="color:#79c0ff">:</span> Deployment
+    <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> nginx
+  <span style="color:#ff7b72">minReplicas</span><span style="color:#79c0ff">:</span> 2
+  <span style="color:#ff7b72">maxReplicas</span><span style="color:#79c0ff">:</span> 10
+  <span style="color:#ff7b72">metrics</span><span style="color:#79c0ff">:</span>
+  <span style="color:#79c0ff">-</span> <span style="color:#ff7b72">type</span><span style="color:#79c0ff">:</span> Resource
+    <span style="color:#ff7b72">resource</span><span style="color:#79c0ff">:</span>
+      <span style="color:#ff7b72">name</span><span style="color:#79c0ff">:</span> cpu
+      <span style="color:#ff7b72">target</span><span style="color:#79c0ff">:</span>
+        <span style="color:#ff7b72">type</span><span style="color:#79c0ff">:</span> Utilization
+        <span style="color:#ff7b72">averageUtilization</span><span style="color:#79c0ff">:</span> 70</code></pre>
     </div>
+    <div class="tbl-wrap"><table class="cmd"><tr><th>Command</th><th>Purpose</th><th>Example</th></tr><tr><td>kubectl get hpa</td><td>Watch scaling events</td><td><code>kubectl get hpa --watch</code></td></tr><tr><td>kubectl autoscale</td><td>Quick HPA creation</td><td><code>kubectl autoscale deploy nginx --cpu-percent=70 --min=2 --max=10</code></td></tr><tr><td>kubectl top pods</td><td>Current CPU/memory</td><td><code>kubectl top pods --sort-by=cpu</code></td></tr></table></div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>HPA = Elastic waistband.</strong> Sets min (can't go skinnier) and max (won't explode). Expands when you eat more (load), contracts when you don't. Always comfortable.</p></div>
+    <div class="alert alert-yellow"><span class="alert-icon">⚠️</span><div>HPA needs <code>resources.requests.cpu</code> set on containers. Without it, HPA can't calculate utilization percentage and stays inactive.</div></div>
+  </div>
 
-    <!-- HELM -->
-    <div id="sec-helm" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 13</span><span class="tag tag-purple">Package Manager</span></div>
-        <h1>Helm Basics</h1>
-        <p>Helm is the package manager for Kubernetes. Charts are templated YAML bundles. Instead of managing 20 raw YAML files, you install, upgrade, and rollback apps with one command.</p>
-      </div>
-      <div class="card"><h3>Real-World Example</h3><p>Install Prometheus + Grafana monitoring stack in one command: <code>helm install monitoring prometheus-community/kube-prometheus-stack</code>. Customise with values.yaml. Upgrade when new chart version releases. No manual YAML editing of 100+ files.</p></div>
-      <div class="card">
-        <div class="code-block">
-          <div class="code-header"><span>bash – Install Helm</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash">curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-helm version</code></pre>
-        </div>
-        <div class="code-block">
-          <div class="code-header"><span>bash – Common Helm operations</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash"># Add a chart repo
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-
-# Search for charts
-helm search repo nginx
-helm search hub wordpress
-
-# Install a chart
-helm install my-nginx bitnami/nginx
-helm install my-nginx bitnami/nginx --namespace prod --create-namespace
-
-# Customize with values
-helm install my-app ./mychart -f values-prod.yaml
-helm install my-app ./mychart --set replicaCount=3
-
-# Lifecycle management
-helm list                          # Installed releases
-helm status my-nginx               # Release status
-helm upgrade my-nginx bitnami/nginx --set replicaCount=3
-helm rollback my-nginx 1           # Rollback to revision 1
-helm uninstall my-nginx            # Remove release
-
-# Inspect before install
-helm show values bitnami/nginx > values.yaml
-helm template my-app ./mychart     # Render templates locally</code></pre>
-        </div>
-      </div>
-      <div class="card">
-        <table class="cmd-table">
-          <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-          <tr><td>helm repo add</td><td>Add chart repository</td><td><code>helm repo add stable https://charts.helm.sh/stable</code></td></tr>
-          <tr><td>helm install</td><td>Deploy a chart</td><td><code>helm install redis bitnami/redis</code></td></tr>
-          <tr><td>helm upgrade</td><td>Update release</td><td><code>helm upgrade redis bitnami/redis --set auth.enabled=false</code></td></tr>
-          <tr><td>helm rollback</td><td>Revert to revision</td><td><code>helm rollback redis 2</code></td></tr>
-          <tr><td>helm list</td><td>Installed releases</td><td><code>helm list -A</code></td></tr>
-          <tr><td>helm uninstall</td><td>Remove release</td><td><code>helm uninstall redis</code></td></tr>
-        </table>
-      </div>
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>Helm = apt/brew for K8s.</strong> Just like <code>apt install nginx</code> installs Nginx on Linux, <code>helm install</code> deploys a full K8s app. Charts = packages. Values = config flags. Releases = installed apps.</p></div>
-    </div>
-
-    <!-- DEBUGGING -->
-    <div id="sec-debugging" class="section">
-      <div class="topic-header">
-        <div class="topic-meta"><span class="tag tag-blue">Topic 14</span><span class="tag tag-red">Operations</span></div>
-        <h1>Debugging Kubernetes</h1>
-        <p>When things break, follow a systematic top-down approach: Deployment → ReplicaSet → Pod → Container → Logs → Events. K8s always tells you what's wrong — you just need to ask the right questions.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🔍 Debug Decision Tree</div>
-        <div class="mermaid-wrap">
-          <div class="mermaid">
-flowchart TD
-  S["App Not Working"] --> P{"kubectl get pods\nStatus?"}
-  P -->|Pending| PE["kubectl describe pod\nCheck: Insufficient resources?\nNo matching node?"]
-  P -->|CrashLoopBackOff| CL["kubectl logs pod\nkubectl logs pod --previous\nCheck: App crash? Bad config?"]
-  P -->|ImagePullBackOff| IP["Check image name/tag\nCheck registry credentials\nkubectl describe pod → Events"]
-  P -->|Running| R{"Can reach service?"}
-  R -->|No| SV["kubectl get endpoints\nCheck: selector matches pod labels?"]
-  R -->|Yes| OK["✅ App is healthy!"]
-  PE -->|Fix| FX["Add resources/fix node selector"]
-  CL -->|Fix| FX2["Fix app code or config"]
-  IP -->|Fix| FX3["Fix image name or add imagePullSecret"]
-  SV -->|Fix| FX4["Fix service selector to match pod labels"]
-  style S fill:#7f1d1d,stroke:#f87171,color:#fff
-  style OK fill:#065f46,stroke:#34d399,color:#fff
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🛠️ Debugging Toolkit</div>
-        <div class="code-block">
-          <div class="code-header"><span>bash – Complete debugging workflow</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-          <pre><code class="language-bash"># 1. Check overall health
-kubectl get nodes
-kubectl get pods -A | grep -v Running | grep -v Completed
-
-# 2. Describe failing pod (events are gold!)
-kubectl describe pod POD_NAME
-
-# 3. Application logs
-kubectl logs POD_NAME
-kubectl logs POD_NAME --previous          # Crashed container logs
-kubectl logs POD_NAME -c CONTAINER_NAME  # Multi-container pod
-kubectl logs POD_NAME -f --tail=100       # Stream last 100 lines
-
-# 4. Shell into container
-kubectl exec -it POD_NAME -- bash
-kubectl exec -it POD_NAME -- sh          # If no bash
-
-# 5. Run a debug sidecar
-kubectl debug -it POD_NAME --image=busybox --target=mycontainer
-
-# 6. Check service endpoints
-kubectl get endpoints SVC_NAME
-kubectl describe svc SVC_NAME
-
-# 7. Check events (most useful!)
-kubectl get events --sort-by='.lastTimestamp' -n default
-kubectl get events --field-selector type=Warning
-
-# 8. Test DNS from inside cluster
-kubectl run dns-test --image=busybox --rm -it --restart=Never -- nslookup kubernetes
-
-# 9. Resource usage
-kubectl top pods
-kubectl top nodes
-
-# 10. Check resource quotas
-kubectl describe resourcequota -n NAMESPACE</code></pre>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📋 Common Error → Fix</div>
-        <table class="cmd-table">
-          <tr><th>Error</th><th>Cause</th><th>Fix</th></tr>
-          <tr><td>CrashLoopBackOff</td><td>App crashes on start</td><td><code>kubectl logs pod --previous</code></td></tr>
-          <tr><td>ImagePullBackOff</td><td>Wrong image / no auth</td><td>Check image name, add imagePullSecret</td></tr>
-          <tr><td>Pending (no nodes)</td><td>No schedulable nodes</td><td>Check node taints, resource requests</td></tr>
-          <tr><td>OOMKilled</td><td>Memory limit exceeded</td><td>Increase <code>resources.limits.memory</code></td></tr>
-          <tr><td>CreateContainerError</td><td>Bad volume/secret mount</td><td><code>kubectl describe pod</code> → Events</td></tr>
-          <tr><td>Endpoints: &lt;none&gt;</td><td>Service selector mismatch</td><td>Check service selector vs pod labels</td></tr>
-        </table>
-      </div>
-
-      <div class="memory-trick"><div class="mt-title">🧠 Memory Trick</div><p><strong>G-D-L-E-E</strong> = <strong>G</strong>et (what's the status?) → <strong>D</strong>escribe (what happened?) → <strong>L</strong>ogs (what did it say?) → <strong>E</strong>xec (can I get in?) → <strong>E</strong>vents (timeline of truth). 5 steps to solve 95% of K8s issues.</p></div>
-    </div>
+  <div id="sec-helm" class="section">
+    <div class="back-btn" onclick="go('home')">← Back to Home</div>
+    <div class="topic-header"><div class="topic-tags"><span class="tag tag-blue">Topic 13</span><span class="tag tag-purple">Package Manager</span></div><h1>Helm — K8s Package Manager</h1><p>Helm bundles all the K8s YAML for an app into a "chart". Install, upgrade, rollback complex apps with one command instead of managing 50 YAML files.</p></div>
+    <div class="tbl-wrap"><table class="cmd"><tr><th>Command</th><th>Purpose</th><th>Example</th></tr><tr><td>helm repo add</td><td>Add a chart repository</td><td><code>helm repo add bitnami https://charts.bitnami.com/bitnami</code></td></tr><tr><td>helm repo update</td><td>Refresh repo index</td><td><code>helm repo update</code></td></tr><tr><td>helm search repo</td><td>Find charts</td><td><code>helm search repo nginx</code></td></tr><tr><td>helm install</td><td>Deploy a chart</td><td><code>helm install my-nginx bitnami/nginx -n prod --create-namespace</code></td></tr><tr><td>helm upgrade</td><td>Update a release</td><td><code>helm upgrade my-nginx bitnami/nginx --set replicaCount=3</code></td></tr><tr><td>helm rollback</td><td>Revert a release</td><td><code>helm rollback my-nginx 1</code></td></tr><tr><td>helm list</td><td>Installed releases</td><td><code>helm list -A</code></td></tr><tr><td>helm uninstall</td><td>Remove a release</td><td><code>helm uninstall my-nginx</code></td></tr><tr><td>helm show values</td><td>Default configuration</td><td><code>helm show values bitnami/nginx > values.yaml</code></td></tr><tr><td>helm template</td><td>Render YAML locally</td><td><code>helm template my-app ./chart -f values.yaml</code></td></tr><tr><td>helm dry-run</td><td>Preview before install</td><td><code>helm install my-app ./chart --dry-run --debug</code></td></tr></table></div>
+    <div class="trick"><div class="trick-title">🧠 Memory Trick</div><p><strong>Helm = apt/brew for K8s.</strong> Charts = packages. Values = configuration flags. Releases = installed apps. <code>helm install</code> is to K8s what <code>apt install</code> is to Ubuntu.</p></div>
+  </div>
 
   </div><!-- end content -->
 </main>
 
 <script>
-// Init mermaid
-mermaid.initialize({startOnLoad:true,theme:'dark',themeVariables:{primaryColor:'#1d4ed8',primaryTextColor:'#e2e8f0',primaryBorderColor:'#3b82f6',lineColor:'#64748b',secondaryColor:'#1e293b',tertiaryColor:'#334155',background:'#0f172a',mainBkg:'#1e293b',nodeBorder:'#475569',clusterBkg:'#0f172a',titleColor:'#e2e8f0',edgeLabelBackground:'#1e293b',fontFamily:'Segoe UI,system-ui,sans-serif'}});
-
-// Section navigation
-const sectionMap = {
-  'home':'Home & Overview','kind-setup':'KIND Cluster Setup','kubectl':'kubectl Basics',
-  'pods':'Pods','replicasets':'ReplicaSets','deployments':'Deployments',
-  'services':'Services','namespaces':'Namespaces','configmaps':'ConfigMaps',
-  'secrets':'Secrets','volumes':'Volumes & Persistent Volumes','ingress':'Ingress',
-  'autoscaling':'Autoscaling','helm':'Helm Basics','debugging':'Debugging Kubernetes'
+// ===== NAVIGATION =====
+const titleMap = {
+  home:'Home & Overview',kind:'KIND Cluster Setup',kubectl:'kubectl Basics',
+  pods:'Pods',rs:'ReplicaSets',deploy:'Deployments',svc:'Services',
+  ns:'Namespaces',cm:'ConfigMaps',sec:'Secrets',vol:'Volumes & PV',
+  ingress:'Ingress',hpa:'Autoscaling',helm:'Helm Basics',debug:'Debugging',quiz:'Quiz'
 };
-
-function showSection(id) {
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+let history2 = ['home'];
+function go(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const sec = document.getElementById('sec-'+id);
-  if(sec) sec.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(i=>{
-    if(i.textContent.includes(sectionMap[id]?.substring(0,8))) i.classList.add('active');
+  if (sec) sec.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(ni => {
+    ni.classList.toggle('active', ni.getAttribute('onclick') && ni.getAttribute('onclick').includes("'"+id+"'"));
   });
-  document.getElementById('page-title').textContent = sectionMap[id]||'Kubernetes from Scratch';
-  window.scrollTo(0,0);
-  // Update progress
-  const keys = Object.keys(sectionMap);
-  const idx = keys.indexOf(id);
-  document.getElementById('progress').style.width = ((idx+1)/keys.length*100)+'%';
-  // Re-render mermaid in new section
-  setTimeout(()=>mermaid.run({nodes:sec.querySelectorAll('.mermaid')}),100);
-  // Re-highlight code
-  sec.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
-  // close sidebar on mobile
-  if(window.innerWidth<=900) document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('breadcrumb').textContent = titleMap[id] || id;
+  window.scrollTo(0, 0);
+  const keys = Object.keys(titleMap);
+  const pct = (keys.indexOf(id)+1) / keys.length;
+  document.getElementById('progress-bar').style.transform = `scaleX(${pct})`;
+  if(id !== 'quiz') initSection(id);
+  if(id === 'quiz') initQuiz();
+  history2.push(id);
+  if(window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
 }
-
-// Copy buttons
-function copyCode(btn) {
-  const code = btn.closest('.code-block').querySelector('code');
-  navigator.clipboard.writeText(code.textContent).then(()=>{
-    btn.textContent='Copied!';btn.classList.add('copied');
-    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied')},2000);
-  });
-}
-
-// Theme toggle
-function toggleTheme() {
-  const html = document.documentElement;
-  const isLight = html.classList.contains('light');
-  html.classList.toggle('light',!isLight);
-  mermaid.initialize({startOnLoad:false,theme:isLight?'dark':'default'});
-}
-
-// Search
-function searchTopics(q) {
-  const items = document.querySelectorAll('.nav-item');
+function initSection(id){ /* placeholder for future lazy loads */ }
+// ===== SEARCH =====
+function doSearch(q) {
   const low = q.toLowerCase();
-  items.forEach(i=>i.style.display=(!q||i.textContent.toLowerCase().includes(low))?'':'none');
-  document.querySelectorAll('.nav-group-title').forEach(g=>{
-    const grp = g.nextElementSibling?.parentElement;
+  document.querySelectorAll('.nav-item').forEach(ni => {
+    const data = (ni.dataset.search || '') + ni.textContent.toLowerCase();
+    ni.style.display = (!q || data.includes(low)) ? '' : 'none';
   });
 }
-
-// Sidebar toggle (mobile)
+// ===== THEME =====
+function toggleTheme() {
+  document.documentElement.classList.toggle('light');
+}
+// ===== SIDEBAR =====
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
-
-// Init highlight
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
-});
+// ===== COPY =====
+function copyCode(btn) {
+  const pre = btn.closest('.code-block, .terminal').querySelector('pre, .term-body');
+  const text = pre ? pre.innerText.replace(/^\$\s/gm,'') : '';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+// ===== CLUSTER SIM =====
+let pods = {w1:['nginx-1','api-1'], w2:['nginx-2','db-1']};
+function renderCluster() {
+  ['w1','w2'].forEach(w => {
+    const el = document.getElementById('pods-'+w);
+    if (!el) return;
+    el.innerHTML = pods[w].map(p =>
+      `<span class="pod-pill running"><span class="pulse"></span>${p}</span>`
+    ).join('') || '<span style="font-size:10px;color:var(--red)">No pods</span>';
+  });
+}
+function simAction(action) {
+  const msg = document.getElementById('cluster-msg');
+  if (action === 'deploy') {
+    const name = 'pod-'+Math.random().toString(36).substr(2,4);
+    const w = Math.random() > 0.5 ? 'w1' : 'w2';
+    pods[w].push(name);
+    msg.textContent = `✓ Scheduled ${name} on worker${w==='w1'?'1':'2'}`;
+  } else if (action === 'kill') {
+    const w = pods.w1.length > 0 ? 'w1' : 'w2';
+    if (pods[w].length) { const k = pods[w].pop(); msg.textContent = `💀 Killed ${k} — ReplicaSet will recreate it!`; }
+  } else if (action === 'scale') {
+    pods.w1 = ['nginx-1','nginx-2','nginx-3']; pods.w2 = ['nginx-4','nginx-5','nginx-6'];
+    msg.textContent = '↕ Scaled deployment to 6 replicas (3 per node)';
+  } else if (action === 'drain') {
+    const evicted = [...pods.w1]; pods.w1 = []; pods.w2 = [...pods.w2,...evicted];
+    msg.textContent = `🚧 Drained Worker 1 — ${evicted.length} pods evicted to Worker 2`;
+  } else if (action === 'reset') {
+    pods = {w1:['nginx-1','api-1'], w2:['nginx-2','db-1']};
+    msg.textContent = '↺ Cluster reset to initial state';
+  }
+  renderCluster();
+  setTimeout(() => { if(msg) msg.textContent=''; }, 3000);
+}
+// ===== CLUSTER TABS =====
+function switchTab(el, panel) {
+  document.querySelectorAll('.cluster-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.cluster-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const pan = document.getElementById('panel-'+panel);
+  if(pan) pan.classList.add('active');
+}
+// ===== TERMINAL SIM =====
+const termOutputs = {
+  'get nodes': `<p class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">kubectl get nodes</span></p>
+<p class="term-line term-out">NAME                        STATUS   ROLES           AGE</p>
+<p class="term-line term-success">my-cluster-control-plane    Ready    control-plane   5m</p>
+<p class="term-line term-success">my-cluster-worker           Ready    worker          4m</p>
+<p class="term-line term-success">my-cluster-worker2          Ready    worker          4m</p>`,
+  'get pods': `<p class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">kubectl get pods -A</span></p>
+<p class="term-line term-out">NAMESPACE   NAME               READY   STATUS    RESTARTS</p>
+<p class="term-line term-success">default     nginx-7d9-x4p2k    1/1     Running   0</p>
+<p class="term-line term-success">default     api-5c6-m3r1n      1/1     Running   0</p>
+<p class="term-line term-warn">default     db-pending-xyz     0/1     Pending   0</p>`,
+  'cluster-info': `<p class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">kubectl cluster-info</span></p>
+<p class="term-line term-success">Kubernetes control plane is running at https://127.0.0.1:6443</p>
+<p class="term-line term-success">CoreDNS is running at https://127.0.0.1:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy</p>`,
+  'get events': `<p class="term-line"><span class="term-prompt">$</span> <span class="term-cmd">kubectl get events --sort-by='.lastTimestamp'</span></p>
+<p class="term-line term-out">LAST SEEN   TYPE      REASON    OBJECT     MESSAGE</p>
+<p class="term-line term-success">5s          Normal    Pulled    pod/nginx  Successfully pulled image "nginx:1.25"</p>
+<p class="term-line term-success">5s          Normal    Started   pod/nginx  Started container nginx</p>
+<p class="term-line term-warn">30s         Warning   BackOff   pod/db     Back-off restarting failed container</p>`
+};
+function termCmd(cmd) {
+  const out = document.getElementById('term-output');
+  if(out && termOutputs[cmd]) { out.innerHTML = termOutputs[cmd]; }
+}
+// ===== POD STATE TOOLTIP =====
+const podStateInfo = {
+  pending: ['Pending', 'Waiting for', 'node assignment'],
+  running: ['Running', 'Container is', 'alive & healthy'],
+  succeeded: ['Succeeded', 'Job completed', 'exit code 0'],
+  failed: ['Failed', 'Container exited', 'non-zero code'],
+  unknown: ['Unknown', 'Node unreachable', 'state unclear']
+};
+function showPodState(state) {
+  const info = podStateInfo[state];
+  if(!info) return;
+  const t1 = document.getElementById('pod-tip');
+  const t2 = document.getElementById('pod-tip2');
+  const t3 = document.getElementById('pod-tip3');
+  if(t1) t1.textContent = info[0];
+  if(t2) t2.textContent = info[1];
+  if(t3) t3.textContent = info[2];
+}
+// ===== DEPLOY DIAGRAM =====
+function updateDeployDiagram() {
+  const reps = parseInt(document.getElementById('rep-slider')?.value || 3);
+  const strategy = document.getElementById('deploy-strategy')?.value || 'rolling';
+  const div = document.getElementById('deploy-diagram');
+  if(!div) return;
+  let html = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">`;
+  for(let i=0;i<reps;i++){
+    html+=`<div style="background:var(--green)20;border:1px solid var(--green)60;border-radius:6px;padding:6px 12px;font-size:12px;color:var(--green)" class="pod-pill-d">
+      <span class="pulse" style="background:var(--green)"></span> nginx-v1-${i+1}
+    </div>`;
+  }
+  html+=`</div><div style="font-size:12px;color:var(--text3);margin-top:6px">
+    Strategy: <strong style="color:var(--accent)">${strategy==='rolling'?'RollingUpdate (zero downtime)':'Recreate (brief downtime)'}</strong> · 
+    Replicas: <strong style="color:var(--yellow)">${reps}</strong>
+    ${strategy==='rolling'?` · maxSurge: 1 · maxUnavailable: 0`:''}
+  </div>`;
+  div.innerHTML = html;
+}
+function animateRollout() {
+  const reps = parseInt(document.getElementById('rep-slider')?.value || 3);
+  const div = document.getElementById('deploy-diagram');
+  if(!div) return;
+  let step = 0;
+  const total = reps;
+  const interval = setInterval(() => {
+    let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">';
+    for(let i=0;i<total;i++){
+      if(i<step){ html+=`<div style="background:var(--accent)20;border:1px solid var(--accent)60;border-radius:6px;padding:6px 12px;font-size:12px;color:var(--accent)"><span class="pulse" style="background:var(--accent)"></span> nginx-v2-${i+1}</div>`; }
+      else { html+=`<div style="background:var(--red)20;border:1px solid var(--red)40;border-radius:6px;padding:6px 12px;font-size:12px;color:var(--red)">✕ nginx-v1-${i+1}</div>`; }
+    }
+    html+='</div><div style="font-size:12px;color:var(--text3)">Rolling update: '+step+'/'+total+' pods updated</div>';
+    div.innerHTML = html;
+    step++;
+    if(step>total){ clearInterval(interval); updateDeployDiagram(); }
+  }, 600);
+}
+// ===== SERVICE TYPE DIAGRAM =====
+function showSvcType(type) {
+  const label = document.getElementById('svc-label');
+  if(!label) return;
+  const texts = {
+    clusterip: 'ClusterIP — Internal only. DNS: nginx.default.svc.cluster.local',
+    nodeport: 'NodePort — External access via NodeIP:30080. Port range: 30000-32767',
+    lb: 'LoadBalancer — Cloud assigns external IP. For AWS/GCP/Azure production clusters.'
+  };
+  label.textContent = texts[type] || '';
+  label.setAttribute('fill', type==='clusterip'?'#38bdf8':type==='nodeport'?'#fbbf24':'#34d399');
+}
+// ===== QUIZ =====
+const questions = [
+  { q:'Which command generates YAML without creating resources?', opts:['kubectl apply --simulate','kubectl create --dry-run=client -o yaml','kubectl get --template','kubectl describe --output'], ans:1, exp:'`--dry-run=client -o yaml` generates the YAML locally without hitting the API server. Essential for CKA!' },
+  { q:'What does `kubectl rollout undo deploy/nginx` do?', opts:['Deletes the deployment','Scales replicas to 0','Reverts to the previous ReplicaSet revision','Pauses the rollout'], ans:2, exp:'rollout undo switches back to the previous ReplicaSet — instant rollback with zero downtime.' },
+  { q:'A pod is in `CrashLoopBackOff`. First command to run?', opts:['kubectl delete pod','kubectl describe node','kubectl logs <pod> --previous','kubectl rollout restart'], ans:2, exp:'`--previous` shows logs from the LAST crashed container — crucial for seeing why it crashed.' },
+  { q:'Which Service type exposes pods on every node\'s IP at a static port?', opts:['ClusterIP','NodePort','LoadBalancer','ExternalName'], ans:1, exp:'NodePort opens port 30000-32767 on every cluster node. Anyone who can reach a node IP can reach your service.' },
+  { q:'What does `kubectl config set-context --current --namespace=dev` do?', opts:['Creates a new namespace','Changes default namespace for kubectl commands','Switches to a different cluster','Deletes the dev namespace'], ans:1, exp:'Sets `dev` as default namespace so you don\'t need `-n dev` on every command. Huge time saver!' },
+  { q:'Pod is in Pending. What is the MOST likely cause?', opts:['App crashed on startup','Image pull failed','No node has enough resources','Network policy blocking traffic'], ans:2, exp:'Pending usually means the Scheduler can\'t find a node. Check `kubectl describe pod` Events section for "Insufficient cpu/memory".' },
+  { q:'What is the difference between liveness and readiness probes?', opts:['They are identical','Liveness restarts the container; readiness removes it from Service endpoints','Readiness restarts; liveness removes from endpoints','Liveness is for HTTP; readiness is for TCP'], ans:1, exp:'Liveness: "is it alive?" → kill+restart if not. Readiness: "is it ready for traffic?" → remove from Service if not. Both essential.' },
+  { q:'How do you force-delete a stuck terminating pod immediately?', opts:['kubectl delete pod NAME --force --grace-period=0','kubectl kill pod NAME','kubectl restart pod NAME','kubectl rollout pod NAME'], ans:0, exp:'`--force --grace-period=0` bypasses the 30s termination grace period. Use carefully — can cause data loss.' },
+  { q:'Which command shows CPU/memory usage per pod in real-time?', opts:['kubectl get metrics','kubectl describe pods --resources','kubectl top pods','kubectl stats pods'], ans:2, exp:'`kubectl top pods` shows current CPU/memory usage. Needs metrics-server installed. Add `--sort-by=memory` to find hungry pods.' },
+  { q:'A Service shows `Endpoints: <none>`. What is wrong?', opts:['The service is not deployed','The service selector doesn\'t match pod labels','The namespace is wrong','The pods are in CrashLoop'], ans:1, exp:'Empty endpoints = label mismatch! Service selector must EXACTLY match pod labels. Check with `kubectl describe svc` and `kubectl get pods --show-labels`.' }
+];
+let answers = new Array(questions.length).fill(null);
+let score = 0;
+function initQuiz() {
+  const c = document.getElementById('quiz-container');
+  if(!c || c.innerHTML) return;
+  c.innerHTML = questions.map((q,i) => `
+    <div class="quiz-box" id="qbox-${i}">
+      <div class="quiz-q">Q${i+1}: ${q.q}</div>
+      <div class="quiz-opts">${q.opts.map((o,j)=>`<button class="quiz-opt" onclick="answerQ(${i},${j})">${o}</button>`).join('')}</div>
+      <div class="quiz-explain" id="exp-${i}">${q.exp}</div>
+    </div>
+  `).join('');
+}
+function answerQ(qi, oi) {
+  if(answers[qi] !== null) return;
+  answers[qi] = oi;
+  const box = document.getElementById('qbox-'+qi);
+  const opts = box.querySelectorAll('.quiz-opt');
+  const correct = questions[qi].ans;
+  opts.forEach((o,i) => {
+    o.disabled = true;
+    if(i===correct) o.classList.add('correct');
+    else if(i===oi && oi!==correct) o.classList.add('wrong');
+  });
+  document.getElementById('exp-'+qi).style.display = 'block';
+  score = answers.filter((a,i)=>a===questions[i].ans).length;
+  const answered = answers.filter(a=>a!==null).length;
+  document.getElementById('quiz-score').textContent = `Score: ${score}/${answered} answered · ${questions.length-answered} remaining`;
+}
+function resetQuiz() {
+  answers = new Array(questions.length).fill(null);
+  score = 0;
+  document.getElementById('quiz-container').innerHTML = '';
+  document.getElementById('quiz-score').textContent = '';
+  initQuiz();
+}
+// ===== MONETIZATION =====
+function openCoffee() { window.open('https://ko-fi.com','_blank'); }
+function openDonate() { window.open('https://github.com/sponsors','_blank'); }
+// ===== INIT =====
+window.onload = () => {
+  renderCluster();
+  updateDeployDiagram();
+};
 </script>
 </body>
 </html>
